@@ -3,8 +3,15 @@ import 'package:flutter/material.dart';
 import 'models/producto_model.dart';
 import 'services/supabase_service.dart';
 import 'theme/app_theme.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: 'https://dpawbhtkvspqukvmewuk.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwYXdiaHRrdnNwcXVrdm1ld3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MDMzMTAsImV4cCI6MjA5MzA3OTMxMH0.iVeTff57W8OHPo9p8VwDwH9rRtlKeASpaUZu4Fj4yj4',
+  );
+
   runApp(const MercadonaApp());
 }
 
@@ -57,20 +64,30 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _cargarDatos() async {
-    final productos = await _service.obtenerProductos();
-    final productosFlash = await _service.obtenerProductosProximosACaducar();
-    final recetas = await _service.obtenerRecetasSugeridas();
-    final categorias = await _service.obtenerCategorias();
+    try {
+      print('⏳ Iniciando carga desde Supabase...');
+      final productos = await _service.obtenerProductos();
+      print('✅ Productos cargados: ${productos.length}');
+      
+      final productosFlash = await _service.obtenerProductosProximosACaducar();
+      final recetas = await _service.obtenerRecetasSugeridas();
+      final categorias = await _service.obtenerCategorias();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      _productos = productos;
-      _productosFlash = productosFlash;
-      _recetas = recetas;
-      _categorias = categorias;
-      _cargando = false;
-    });
+      setState(() {
+        _productos = productos;
+        _productosFlash = productosFlash;
+        _recetas = recetas;
+        _categorias = categorias;
+        _cargando = false;
+      });
+    } catch (e, stacktrace) {
+      print('❌ ERROR FATAL CARGANDO DATOS: $e');
+      print(stacktrace);
+      // Para que al menos la app quite el círculo de carga aunque falle
+      setState(() => _cargando = false); 
+    }
   }
 
   int get _totalUnidadesCarrito {

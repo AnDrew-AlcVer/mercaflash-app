@@ -32,24 +32,37 @@ class Producto {
   });
 
   factory Producto.fromMap(Map<String, dynamic> data) {
+    // 1. Calcular días de caducidad desde la fecha SQL
+    int? diasCalculados;
+    if (data['fecha_caducidad'] != null) {
+      DateTime fecha = DateTime.parse(data['fecha_caducidad']);
+      diasCalculados = fecha.difference(DateTime.now()).inDays;
+    }
+
+    // 2. Gestionar la lógica de precios
+    double precioOriginal = (data['precio_original'] as num?)?.toDouble() ?? 0;
+    double precioOferta = (data['precio_oferta'] as num?)?.toDouble() ?? 0;
+    bool estaDeOferta = precioOferta < precioOriginal;
+
+    // Asignamos una categoría y emoji básico si no vienen en la DB (puedes mejorar esto)
+    String cat = data['categoria'] ?? 'Despensa';
+    String emojiIcon = data['emoji'] ?? '🛒';
+
     return Producto(
       id: data['id'].toString(),
       nombre: data['nombre'] ?? '',
-      cantidad: data['cantidad'] ?? '',
-      categoria: data['categoria'] ?? '',
+      cantidad: data['cantidad'] ?? '1 ud.',
+      categoria: cat,
       subcategoria: data['subcategoria'] ?? '',
-      precio: double.tryParse(data['precio'].toString()) ?? 0,
-      precioAnterior: data['precio_anterior'] == null
-          ? null
-          : double.tryParse(data['precio_anterior'].toString()),
-      diasCaducidad: data['dias_caducidad'] == null
-          ? null
-          : int.tryParse(data['dias_caducidad'].toString()),
+      // Si está de oferta, el precio principal es el de oferta. Si no, es el original.
+      precio: estaDeOferta ? precioOferta : precioOriginal,
+      precioAnterior: estaDeOferta ? precioOriginal : null,
+      diasCaducidad: diasCalculados,
       imagenUrl: data['imagen_url'],
-      emoji: data['emoji'] ?? '🛒',
+      emoji: emojiIcon,
       esNovedad: data['es_novedad'] == true,
-      esBajadaPrecio: data['es_bajada_precio'] == true,
-      esFlash: data['es_flash'] == true,
+      esBajadaPrecio: estaDeOferta, 
+      esFlash: diasCalculados != null && diasCalculados <= 2, // Es flash si caduca en <= 2 días
       descripcion: data['descripcion'] ?? '',
     );
   }
@@ -120,9 +133,33 @@ class Receta {
     required this.pasos,
   });
 
+  // NUEVO: Factory para crear la receta desde los datos de Supabase
+  factory Receta.fromMap(Map<String, dynamic> data, List<IngredienteReceta> listaIngredientes) {
+    // Dividimos el bloque de texto de SQL por los puntos '●' para crear la lista de pasos
+    String preparacionRaw = data['preparacion'] ?? '';
+    List<String> listaPasos = preparacionRaw
+        .split('●')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    return Receta(
+      id: data['id'].toString(),
+      titulo: data['titulo'] ?? '',
+      etiqueta: 'Recomendado para ti',
+      descripcion: 'Receta paso a paso para aprovechar tus productos.',
+      tiempoMinutos: data['tiempo_minutos'] ?? 30,
+      dificultad: data['dificultad'] ?? 'Media',
+      raciones: 2, // Por defecto
+      emoji: '👨‍🍳', // Por defecto
+      ingredientes: listaIngredientes,
+      pasos: listaPasos,
+    );
+  }
+
   int get productosACaducar {
     return ingredientes
-        .where((ingrediente) => ingrediente.diasCaducidad != null)
+        .where((ingrediente) => ingrediente.diasCaducidad != null && ingrediente.diasCaducidad! <= 2)
         .length;
   }
 }
