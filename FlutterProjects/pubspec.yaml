@@ -1,0 +1,33 @@
+name: egm_project_app
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+    sdk: ">=3.7.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700
+          
+    - family: Rv
+      fonts:
+        - asset: assets/fonts/RV.ttf
