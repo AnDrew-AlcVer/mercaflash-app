@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
+
   static const Color green = Color(0xFF009639);
   static const Color greenDark = Color(0xFF007A33);
   static const Color greenLight = Color(0xFFE4F7EC);
@@ -20,28 +21,79 @@ class AppTheme {
   static const Color gray = Color(0xFF777777);
   static const Color border = Color(0xFFE5E5E5);
 
+  // ====================
+  // CONFIGURACIÓN DEL TEMA GENERAL
+  // ====================
   static ThemeData get lightTheme {
     final base = ThemeData.light(useMaterial3: true);
 
     return base.copyWith(
       scaffoldBackgroundColor: background,
+      
       colorScheme: ColorScheme.fromSeed(
         seedColor: green,
         primary: green,
         secondary: yellow,
         surface: white,
       ),
-      textTheme: base.textTheme.apply(
-        fontFamily: 'Roboto',
-        bodyColor: black,
-        displayColor: black,
+
+      // ====================
+      // TIPOGRAFÍAS RECUPERADAS DEL ORIGINAL
+      // ====================
+      textTheme: const TextTheme(
+        // Heading 1 (H1)
+        displayLarge: TextStyle(
+          fontFamily: 'Roboto',
+          fontSize: 48,
+          fontWeight: FontWeight.bold,
+          height: 1.1,
+          letterSpacing: -0.4,
+          color: black,
+        ),
+        // Heading 2 (H2)
+        displayMedium: TextStyle(
+          fontFamily: 'Roboto',
+          fontSize: 40,
+          fontWeight: FontWeight.bold,
+          height: 1.4,
+          color: black,
+        ),
+        // Medium Text
+        titleMedium: TextStyle(
+          fontFamily: 'Rv',
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: black,
+        ),
+        // Body Normal Text
+        bodyMedium: TextStyle(
+          fontFamily: 'Rv',
+          fontSize: 16,
+          fontWeight: FontWeight.normal,
+          height: 1.4,
+          color: black,
+        ),
+        // Small Text
+        bodySmall: TextStyle(
+          fontFamily: 'Rv',
+          fontSize: 14,
+          fontWeight: FontWeight.normal,
+          height: 1.4,
+          letterSpacing: 0.4,
+          color: gray, // Usamos el gris de la nueva paleta
+        ),
       ),
+
+      // ====================
+      // COMPONENTES DEL NUEVO TEMA
+      // ====================
       appBarTheme: const AppBarTheme(
         backgroundColor: white,
         elevation: 0,
         centerTitle: true,
         foregroundColor: green,
       ),
+
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: green,
@@ -52,11 +104,13 @@ class AppTheme {
             borderRadius: BorderRadius.circular(26),
           ),
           textStyle: const TextStyle(
+            fontFamily: 'Rv', // Aseguramos que el botón use la fuente correcta
             fontWeight: FontWeight.w800,
             fontSize: 15,
           ),
         ),
       ),
+
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: green,
@@ -66,18 +120,20 @@ class AppTheme {
             borderRadius: BorderRadius.circular(18),
           ),
           textStyle: const TextStyle(
+            fontFamily: 'Rv',
             fontWeight: FontWeight.w800,
           ),
         ),
       ),
+
       navigationBarTheme: NavigationBarThemeData(
         height: 76,
         backgroundColor: white,
         indicatorColor: greenLight,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
-
           return TextStyle(
+            fontFamily: 'Rv',
             fontSize: 12,
             fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
             color: selected ? green : gray,
@@ -85,7 +141,6 @@ class AppTheme {
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
-
           return IconThemeData(
             color: selected ? green : gray,
           );
