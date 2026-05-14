@@ -74,7 +74,15 @@ class ProductGridCard extends StatelessWidget {
           children: [
             Expanded(
               child: Center(
-                child: Text(producto.emoji, style: const TextStyle(fontSize: 54)),
+                // CAMBIO: Se sustituye el Emoji por la Imagen de la DB
+                child: producto.imagenUrl != null 
+                  ? Image.network(
+                      producto.imagenUrl!,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => 
+                        Text(producto.emoji, style: const TextStyle(fontSize: 54)),
+                    )
+                  : Text(producto.emoji, style: const TextStyle(fontSize: 54)),
               ),
             ),
             Text(
@@ -151,7 +159,15 @@ class CompactProductTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             alignment: Alignment.center,
-            child: Text(producto.emoji, style: const TextStyle(fontSize: 30)),
+            // CAMBIO: Se sustituye el Emoji por la Imagen en formato compacto
+            child: producto.imagenUrl != null 
+              ? Image.network(
+                  producto.imagenUrl!,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => 
+                    Text(producto.emoji, style: const TextStyle(fontSize: 30)),
+                )
+              : Text(producto.emoji, style: const TextStyle(fontSize: 30)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -266,7 +282,18 @@ class ExpiryProductCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
               ),
               alignment: Alignment.center,
-              child: Text(producto.emoji, style: const TextStyle(fontSize: 38)),
+              // CAMBIO: Imagen para la lista de productos próximos a caducar
+              child: producto.imagenUrl != null 
+                ? Padding(
+                    padding: const EdgeInsets.all(6.0),
+                    child: Image.network(
+                        producto.imagenUrl!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => 
+                          Text(producto.emoji, style: const TextStyle(fontSize: 38)),
+                      ),
+                  )
+                : Text(producto.emoji, style: const TextStyle(fontSize: 38)),
             ),
             const SizedBox(width: 13),
             Expanded(
@@ -324,7 +351,19 @@ class RecipeCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Text(receta.emoji, style: const TextStyle(fontSize: 42)),
+              // CAMBIO: Las recetas también pueden usar imagenUrl si la tienen
+              SizedBox(
+                width: 50,
+                height: 50,
+                child: receta.imagenUrl != null 
+                  ? Image.network(
+                      receta.imagenUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => 
+                        Text(receta.emoji, style: const TextStyle(fontSize: 42)),
+                    )
+                  : Text(receta.emoji, style: const TextStyle(fontSize: 42)),
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(

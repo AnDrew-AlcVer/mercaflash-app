@@ -115,26 +115,28 @@ class SupabaseService {
   }
 
   Future<List<CategoriaMercadona>> obtenerCategorias() async {
-    // Al no haber tabla de categorías en SQL, cargamos tus categorías estáticas al instante
-    return categoriasDemo;
+    // Hacemos la consulta a la tabla 'categorias' de Supabase
+    final response = await _client.from('categorias').select();
+
+    List<CategoriaMercadona> categorias = [];
+
+    for (var row in response) {
+      categorias.add(CategoriaMercadona(
+        // Convertimos el id (que en Supabase es int4) a String para no romper el resto del código
+        id: row['id'].toString(), 
+        nombre: row['nombre'] as String,
+        // Aquí recibes el string con la URL de la imagen que está en la base de datos
+        emoji: row['emoji'] as String, 
+      ));
+    }
+
+    // Añadimos manualmente la categoría Flash si la necesitas para mantener la lógica de tu UI
+    categorias.add(const CategoriaMercadona(
+      id: 'flash',
+      nombre: 'Próximos a caducar',
+      emoji: 'https://cdn-icons-png.flaticon.com/512/1164/1164382.png', // URL de un rayo por defecto (cámbiala si quieres)
+    ));
+
+    return categorias;
   }
 }
-
-// Mantenemos tus categorías intactas para no romper la navegación visual
-const List<CategoriaMercadona> categoriasDemo = [
-  CategoriaMercadona(id: 'agua', nombre: 'Agua y refrescos', emoji: '🥤'),
-  CategoriaMercadona(id: 'aperitivos', nombre: 'Aperitivos', emoji: '🍌'),
-  CategoriaMercadona(id: 'arroz', nombre: 'Arroz, legumbres y pasta', emoji: '🍚'),
-  CategoriaMercadona(id: 'azucar', nombre: 'Azúcar, caramelos y chocolate', emoji: '🍫'),
-  CategoriaMercadona(id: 'bebe', nombre: 'Bebé', emoji: '🍼'),
-  CategoriaMercadona(id: 'bodega', nombre: 'Bodega', emoji: '🍾'),
-  CategoriaMercadona(id: 'cacao', nombre: 'Cacao, café e infusiones', emoji: '☕'),
-  CategoriaMercadona(id: 'carne', nombre: 'Carne', emoji: '🥩'),
-  CategoriaMercadona(id: 'cereales', nombre: 'Cereales y galletas', emoji: '🍪'),
-  CategoriaMercadona(id: 'charcuteria', nombre: 'Charcutería y quesos', emoji: '🧀'),
-  CategoriaMercadona(id: 'congelados', nombre: 'Congelados', emoji: '❄️'),
-  CategoriaMercadona(id: 'conservas', nombre: 'Conservas, caldos y cremas', emoji: '🥫'),
-  CategoriaMercadona(id: 'verdura', nombre: 'Fruta y verdura', emoji: '🥬'),
-  CategoriaMercadona(id: 'lacteos', nombre: 'Leche, huevos y yogures', emoji: '🥛'),
-  CategoriaMercadona(id: 'flash', nombre: 'Próximos a caducar', emoji: '⚡'),
-];

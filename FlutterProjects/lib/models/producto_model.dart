@@ -47,7 +47,6 @@ class Producto {
         precioOfertaRaw < precioOriginal;
     final precioOferta = precioOfertaRaw ?? precioOriginal;
 
-    // Asignamos una categoría y emoji básico si no vienen en la DB (puedes mejorar esto)
     String cat = data['categoria'] ?? 'Despensa';
     String emojiIcon = data['emoji'] ?? '🛒';
 
@@ -57,15 +56,15 @@ class Producto {
       cantidad: data['cantidad'] ?? '1 ud.',
       categoria: cat,
       subcategoria: data['subcategoria'] ?? '',
-      // Si está de oferta, el precio principal es el de oferta. Si no, es el original.
       precio: estaDeOferta ? precioOferta : precioOriginal,
       precioAnterior: estaDeOferta ? precioOriginal : null,
       diasCaducidad: diasCalculados,
-      imagenUrl: data['imagen_url'],
+      // Usamos la nueva columna 'imagen' de tu DB
+      imagenUrl: data['imagen'], 
       emoji: emojiIcon,
       esNovedad: data['es_novedad'] == true,
       esBajadaPrecio: estaDeOferta, 
-      esFlash: diasCalculados != null && diasCalculados <= 2, // Es flash si caduca en <= 2 días
+      esFlash: diasCalculados != null && diasCalculados <= 2,
       descripcion: data['descripcion'] ?? '',
     );
   }
@@ -136,9 +135,7 @@ class Receta {
     required this.pasos,
   });
 
-  // NUEVO: Factory para crear la receta desde los datos de Supabase
   factory Receta.fromMap(Map<String, dynamic> data, List<IngredienteReceta> listaIngredientes) {
-    // Dividimos el bloque de texto de SQL por los puntos '●' para crear la lista de pasos
     String preparacionRaw = data['preparacion'] ?? '';
     List<String> listaPasos = preparacionRaw
         .split('●')
@@ -152,11 +149,13 @@ class Receta {
       etiqueta: 'Recomendado para ti',
       descripcion: 'Receta paso a paso para aprovechar tus productos.',
       tiempoMinutos: data['tiempo_minutos'] ?? 30,
-      dificultad: data['dificultad'] ?? 'Media',
-      raciones: 2, // Por defecto
-      emoji: '👨‍🍳', // Por defecto
+      // CORRECCIÓN: 'dificultad' en lugar de 'difficulty'
+      dificultad: data['dificultad'] ?? 'Media', 
+      raciones: 2,
+      emoji: '👨‍🍳',
       ingredientes: listaIngredientes,
       pasos: listaPasos,
+      imagenUrl: data['imagen_url'], 
     );
   }
 

@@ -130,7 +130,19 @@ class _CategoryList extends StatelessWidget {
             color: AppTheme.white,
             child: Row(
               children: [
-                Text(categoria.emoji, style: const TextStyle(fontSize: 24)),
+                Image.network(
+                  categoria.emoji,
+                  width: 32,
+                  height: 32,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(
+                      Icons.image_not_supported_rounded,
+                      size: 32,
+                      color: AppTheme.gray,
+                    );
+                  },
+                ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
