@@ -40,9 +40,12 @@ class Producto {
     }
 
     // 2. Gestionar la lógica de precios
-    double precioOriginal = (data['precio_original'] as num?)?.toDouble() ?? 0;
-    double precioOferta = (data['precio_oferta'] as num?)?.toDouble() ?? 0;
-    bool estaDeOferta = precioOferta < precioOriginal;
+    final precioOriginal = (data['precio_original'] as num?)?.toDouble() ?? 0;
+    final precioOfertaRaw = (data['precio_oferta'] as num?)?.toDouble();
+    final estaDeOferta = precioOfertaRaw != null &&
+        precioOfertaRaw > 0 &&
+        precioOfertaRaw < precioOriginal;
+    final precioOferta = precioOfertaRaw ?? precioOriginal;
 
     // Asignamos una categoría y emoji básico si no vienen en la DB (puedes mejorar esto)
     String cat = data['categoria'] ?? 'Despensa';

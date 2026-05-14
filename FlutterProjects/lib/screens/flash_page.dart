@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+
 import '../models/producto_model.dart';
 import '../theme/app_theme.dart';
-import '../widgets/ui_components.dart';
 import '../widgets/product_cards.dart';
+import '../widgets/ui_components.dart';
 
 class FlashPage extends StatelessWidget {
   final List<Producto> productos;
@@ -10,7 +11,7 @@ class FlashPage extends StatelessWidget {
   final Map<String, int> carrito;
   final ValueChanged<Producto> onAdd;
   final ValueChanged<Producto> onRemove;
-  final VoidCallback onBack;
+  final VoidCallback? onBack;
   final ValueChanged<Receta> onOpenRecipe;
 
   const FlashPage({
@@ -20,7 +21,7 @@ class FlashPage extends StatelessWidget {
     required this.carrito,
     required this.onAdd,
     required this.onRemove,
-    required this.onBack,
+    this.onBack,
     required this.onOpenRecipe,
   });
 
@@ -28,7 +29,7 @@ class FlashPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SimpleHeader(title: 'Próximos a caducar', onBack: onBack),
+        SimpleHeader(title: 'Ofertas Flash', onBack: onBack),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
@@ -57,26 +58,40 @@ class FlashPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              const SectionTitle.compact(title: 'Productos destacados'),
-              ...productos.map(
-                (producto) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: ExpiryProductCard(
-                    producto: producto,
-                    cantidad: carrito[producto.id] ?? 0,
-                    onAdd: () => onAdd(producto),
-                    onRemove: () => onRemove(producto),
+              const SectionTitle.compact(title: 'Productos próximos a caducar'),
+              if (productos.isEmpty)
+                const EmptyState(
+                  icon: Icons.flash_off_rounded,
+                  title: 'No hay ofertas flash ahora mismo',
+                  subtitle: 'Cuando haya productos próximos a caducar aparecerán aquí.',
+                )
+              else
+                ...productos.map(
+                  (producto) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: ExpiryProductCard(
+                      producto: producto,
+                      cantidad: carrito[producto.id] ?? 0,
+                      onAdd: () => onAdd(producto),
+                      onRemove: () => onRemove(producto),
+                    ),
                   ),
                 ),
-              ),
               const SizedBox(height: 12),
               const SectionTitle.compact(title: 'Recetas para aprovechar'),
-              ...recetas.map(
-                (receta) => RecipeCard(
-                  receta: receta,
-                  onTap: () => onOpenRecipe(receta),
+              if (recetas.isEmpty)
+                const EmptyState(
+                  icon: Icons.restaurant_menu_rounded,
+                  title: 'No hay recetas disponibles',
+                  subtitle: 'Añadiremos recetas sugeridas cuando estén disponibles en la base de datos.',
+                )
+              else
+                ...recetas.map(
+                  (receta) => RecipeCard(
+                    receta: receta,
+                    onTap: () => onOpenRecipe(receta),
+                  ),
                 ),
-              ),
             ],
           ),
         ),

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../models/producto_model.dart';
-import '../widgets/ui_components.dart';
 import '../widgets/product_cards.dart';
+import '../widgets/ui_components.dart';
 
 class HomePage extends StatelessWidget {
   final List<Producto> productos;
@@ -10,6 +11,8 @@ class HomePage extends StatelessWidget {
   final ValueChanged<Producto> onAdd;
   final ValueChanged<Producto> onRemove;
   final VoidCallback onOpenFlash;
+  final VoidCallback onOpenCart;
+  final VoidCallback onOpenCategories;
 
   const HomePage({
     super.key,
@@ -19,6 +22,8 @@ class HomePage extends StatelessWidget {
     required this.onAdd,
     required this.onRemove,
     required this.onOpenFlash,
+    required this.onOpenCart,
+    required this.onOpenCategories,
   });
 
   @override
@@ -32,14 +37,21 @@ class HomePage extends StatelessWidget {
 
     return Column(
       children: [
-        AppTopBar(totalUnidades: totalUnidades),
+        AppTopBar(
+          totalUnidades: totalUnidades,
+          onOpenCart: onOpenCart,
+          onOpenCategories: onOpenCategories,
+        ),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.only(bottom: 22),
             children: [
               const DeliveryBanner(),
               PromoHeroCard(onTap: onOpenFlash),
-              const SectionTitle(title: 'Novedades', subtitle: 'Productos recién añadidos o mejorados'),
+              const SectionTitle(
+                title: 'Novedades',
+                subtitle: 'Productos recién añadidos o mejorados',
+              ),
               ProductHorizontalList(
                 productos: novedades,
                 carrito: carrito,

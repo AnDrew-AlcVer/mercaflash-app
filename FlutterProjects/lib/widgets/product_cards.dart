@@ -21,7 +21,7 @@ class ProductHorizontalList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 246,
+      height: 262,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 14),
         scrollDirection: Axis.horizontal,
@@ -30,7 +30,7 @@ class ProductHorizontalList extends StatelessWidget {
         itemBuilder: (context, index) {
           final producto = productos[index];
           return SizedBox(
-            width: 150,
+            width: 156,
             child: ProductGridCard(
               producto: producto,
               cantidad: carrito[producto.id] ?? 0,
@@ -91,10 +91,11 @@ class ProductGridCard extends StatelessWidget {
               style: const TextStyle(fontSize: 11, color: AppTheme.gray),
             ),
             const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+            Wrap(
+              spacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.end,
               children: [
-                if (producto.precioAnterior != null) ...[
+                if (producto.precioAnterior != null)
                   Text(
                     producto.precioAnteriorTexto,
                     style: const TextStyle(
@@ -103,8 +104,6 @@ class ProductGridCard extends StatelessWidget {
                       fontSize: 11,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                ],
                 Text(
                   producto.precioTexto,
                   style: TextStyle(
@@ -171,7 +170,7 @@ class CompactProductTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          SizedBox(width: 112, child: QuantityButton(cantidad: cantidad, onAdd: onAdd, onRemove: onRemove)),
+          SizedBox(width: 100, child: QuantityButton(cantidad: cantidad, onAdd: onAdd, onRemove: onRemove)),
         ],
       ),
     );
@@ -278,17 +277,17 @@ class ExpiryProductCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(producto.cantidad, style: const TextStyle(color: AppTheme.gray, fontSize: 12)),
                   const SizedBox(height: 8),
-                  Row(
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 3,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      if (producto.precioAnterior != null) ...[
+                      if (producto.precioAnterior != null)
                         Text(
                           producto.precioAnteriorTexto,
                           style: const TextStyle(color: AppTheme.gray, decoration: TextDecoration.lineThrough, fontSize: 12),
                         ),
-                        const SizedBox(width: 5),
-                      ],
                       Text(producto.precioTexto, style: const TextStyle(color: AppTheme.red, fontWeight: FontWeight.w900)),
-                      const SizedBox(width: 8),
                       Text(producto.caducidadTexto, style: TextStyle(color: badgeColor, fontWeight: FontWeight.w900, fontSize: 12)),
                     ],
                   ),
@@ -296,7 +295,7 @@ class ExpiryProductCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            SizedBox(width: 104, child: QuantityButton(cantidad: cantidad, onAdd: onAdd, onRemove: onRemove)),
+            SizedBox(width: 96, child: QuantityButton(cantidad: cantidad, onAdd: onAdd, onRemove: onRemove)),
           ],
         ),
       ),

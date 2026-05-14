@@ -42,7 +42,7 @@ class CartItemTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          SizedBox(width: 104, child: QuantityButton(cantidad: cantidad, onAdd: onAdd, onRemove: onRemove)),
+          SizedBox(width: 96, child: QuantityButton(cantidad: cantidad, onAdd: onAdd, onRemove: onRemove)),
         ],
       ),
     );

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+
 import '../models/producto_model.dart';
-import '../widgets/ui_components.dart';
+import '../theme/app_theme.dart';
 import '../widgets/cart_widgets.dart';
+import '../widgets/ui_components.dart';
 
 class CarritoPage extends StatelessWidget {
   final List<Producto> productos;
@@ -10,6 +12,7 @@ class CarritoPage extends StatelessWidget {
   final ValueChanged<Producto> onAdd;
   final ValueChanged<Producto> onRemove;
   final VoidCallback onClear;
+  final VoidCallback onContinueShopping;
 
   const CarritoPage({
     super.key,
@@ -19,6 +22,7 @@ class CarritoPage extends StatelessWidget {
     required this.onAdd,
     required this.onRemove,
     required this.onClear,
+    required this.onContinueShopping,
   });
 
   @override
@@ -32,10 +36,12 @@ class CarritoPage extends StatelessWidget {
         const SimpleHeader(title: 'Lista'),
         Expanded(
           child: productosCarrito.isEmpty
-              ? const EmptyState(
+              ? EmptyState(
                   icon: Icons.shopping_cart_outlined,
                   title: 'Tu carrito está vacío',
-                  subtitle: 'Añade productos desde Inicio, Categorías, Buscar o Próximos a caducar.',
+                  subtitle: 'Añade productos desde Inicio, Categorías u Ofertas Flash.',
+                  actionText: 'Seguir comprando',
+                  onAction: onContinueShopping,
                 )
               : ListView(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
@@ -65,11 +71,29 @@ class CarritoPage extends StatelessWidget {
                         onRemove: () => onRemove(producto),
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    AnimatedTap(
+                      onTap: onContinueShopping,
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppTheme.greenLight,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Text(
+                          'Seguir comprando',
+                          style: TextStyle(
+                            color: AppTheme.green,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
         ),
-        if (productosCarrito.isNotEmpty)
-          CheckoutBar(total: total),
+        if (productosCarrito.isNotEmpty) CheckoutBar(total: total),
       ],
     );
   }

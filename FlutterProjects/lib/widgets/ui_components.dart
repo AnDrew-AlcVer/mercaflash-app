@@ -5,8 +5,15 @@ import 'cart_widgets.dart';
 
 class AppTopBar extends StatelessWidget {
   final int totalUnidades;
+  final VoidCallback onOpenCart;
+  final VoidCallback onOpenCategories;
 
-  const AppTopBar({super.key, required this.totalUnidades});
+  const AppTopBar({
+    super.key,
+    required this.totalUnidades,
+    required this.onOpenCart,
+    required this.onOpenCategories,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -17,18 +24,18 @@ class AppTopBar extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            onPressed: () {},
+            onPressed: onOpenCategories,
             icon: const Icon(Icons.menu_rounded, color: AppTheme.black),
           ),
           const Expanded(
             child: Text(
-              'mercadona',
+              'MERCADONA',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppTheme.green,
                 fontWeight: FontWeight.w900,
-                fontSize: 25,
-                letterSpacing: -0.8,
+                fontSize: 22,
+                letterSpacing: 0.5,
               ),
             ),
           ),
@@ -36,7 +43,7 @@ class AppTopBar extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               IconButton(
-                onPressed: () {},
+                onPressed: onOpenCart,
                 icon: const Icon(Icons.shopping_cart_outlined, color: AppTheme.black),
               ),
               if (totalUnidades > 0)
@@ -398,8 +405,17 @@ class EmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final String? actionText;
+  final VoidCallback? onAction;
 
-  const EmptyState({super.key, required this.icon, required this.title, required this.subtitle});
+  const EmptyState({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.actionText,
+    this.onAction,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -411,9 +427,37 @@ class EmptyState extends StatelessWidget {
           children: [
             Icon(icon, size: 58, color: AppTheme.green),
             const SizedBox(height: 14),
-            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+            ),
             const SizedBox(height: 8),
-            Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.gray, height: 1.35)),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppTheme.gray, height: 1.35),
+            ),
+            if (actionText != null && onAction != null) ...[
+              const SizedBox(height: 18),
+              AnimatedTap(
+                onTap: onAction,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                  decoration: BoxDecoration(
+                    color: AppTheme.green,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Text(
+                    actionText!,
+                    style: const TextStyle(
+                      color: AppTheme.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
