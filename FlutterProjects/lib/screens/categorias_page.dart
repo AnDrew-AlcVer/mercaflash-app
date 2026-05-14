@@ -4,12 +4,12 @@ import '../models/producto_model.dart';
 import '../theme/app_theme.dart';
 import '../widgets/product_cards.dart';
 import '../widgets/ui_components.dart';
+import '../screens/productos_categoria_page.dart'; 
 
 class CategoriasPage extends StatefulWidget {
   final List<CategoriaMercadona> categorias;
   final List<Producto> productos;
   final Map<String, int> carrito;
-  final ValueChanged<CategoriaMercadona> onOpenCategory;
   final ValueChanged<Producto> onAdd;
   final ValueChanged<Producto> onRemove;
 
@@ -18,7 +18,6 @@ class CategoriasPage extends StatefulWidget {
     required this.categorias,
     required this.productos,
     required this.carrito,
-    required this.onOpenCategory,
     required this.onAdd,
     required this.onRemove,
   });
@@ -30,11 +29,50 @@ class CategoriasPage extends StatefulWidget {
 class _CategoriasPageState extends State<CategoriasPage> {
   String _query = '';
 
+  // Función que filtra y navega a la nueva pantalla
+  void _abrirCategoria(CategoriaMercadona categoria) {
+    // 1. Filtrar los productos por la categoría seleccionada (ignorando mayúsculas y espacios)
+    final productosFiltrados = widget.productos.where((p) {
+      final catProducto = p.categoria.trim().toLowerCase();
+      final catNombre = categoria.nombre.trim().toLowerCase();
+      
+      return catProducto == catNombre;
+    }).toList();
+
+    // Prints para ayudarte a depurar en caso de que siga vacío
+    debugPrint('--- DEBUG CATEGORÍAS ---');
+    debugPrint('Categoría clickeada: ${categoria.nombre}');
+    debugPrint('Productos que coinciden: ${productosFiltrados.length}');
+    if (widget.productos.isNotEmpty && productosFiltrados.isEmpty) {
+      debugPrint('Ojo, no hay coincidencias. Un producto cualquiera tiene la categoría: "${widget.productos.first.categoria}"');
+      debugPrint('Asegúrate de que en Supabase la columna coincide con el "nombre" de la categoría y no con el "id".');
+    }
+
+    // 2. Navegar a la pantalla de la categoría
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold( 
+          backgroundColor: AppTheme.background, 
+          body: SafeArea(
+            child: ProductosCategoriaPage(
+              categoria: categoria.nombre,
+              productos: productosFiltrados,
+              carrito: widget.carrito,
+              onAdd: widget.onAdd,
+              onRemove: widget.onRemove,
+              onBack: () => Navigator.pop(context),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final productosFiltrados = widget.productos.where((producto) {
-      final texto = '${producto.nombre} ${producto.categoria} ${producto.subcategoria}'
-          .toLowerCase();
+      final texto = '${producto.nombre} ${producto.categoria} ${producto.subcategoria}'.toLowerCase();
       return texto.contains(_query.toLowerCase());
     }).toList();
 
@@ -50,7 +88,7 @@ class _CategoriasPageState extends State<CategoriasPage> {
           child: _query.trim().isEmpty
               ? _CategoryList(
                   categorias: widget.categorias,
-                  onOpenCategory: widget.onOpenCategory,
+                  onOpenCategory: _abrirCategoria, 
                 )
               : _SearchResults(
                   productos: productosFiltrados,

@@ -1,8 +1,104 @@
 import 'package:flutter/material.dart';
+
 import '../models/producto_model.dart';
 import '../theme/app_theme.dart';
-import 'ui_components.dart';
-import 'cart_widgets.dart';
+import '../widgets/ui_components.dart';
+import 'cart_widgets.dart'; // Asegúrate de tener esta importación si usas QuantityButton
+
+class FlashPage extends StatelessWidget {
+  final List<Producto> productos;
+  final List<Receta> recetas;
+  final Map<String, int> carrito;
+  final ValueChanged<Producto> onAdd;
+  final ValueChanged<Producto> onRemove;
+  final VoidCallback? onBack;
+  final ValueChanged<Receta> onOpenRecipe;
+
+  const FlashPage({
+    super.key,
+    required this.productos,
+    required this.recetas,
+    required this.carrito,
+    required this.onAdd,
+    required this.onRemove,
+    this.onBack,
+    required this.onOpenRecipe,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SimpleHeader(title: 'Ofertas Flash', onBack: onBack),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.greenLight,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  children: [
+                    Text('⚡', style: TextStyle(fontSize: 34)),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Aprovecha productos con descuento antes de que caduquen y añádelos al carrito.',
+                        style: TextStyle(
+                          color: AppTheme.green,
+                          fontWeight: FontWeight.w900,
+                          height: 1.25,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              const SectionTitle.compact(title: 'Productos próximos a caducar'),
+              if (productos.isEmpty)
+                const EmptyState(
+                  icon: Icons.flash_off_rounded,
+                  title: 'No hay ofertas flash ahora mismo',
+                  subtitle: 'Cuando haya productos próximos a caducar aparecerán aquí.',
+                )
+              else
+                ...productos.map(
+                  (producto) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: ExpiryProductCard(
+                      producto: producto,
+                      cantidad: carrito[producto.id] ?? 0,
+                      onAdd: () => onAdd(producto),
+                      onRemove: () => onRemove(producto),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              const SectionTitle.compact(title: 'Recetas para aprovechar'),
+              if (recetas.isEmpty)
+                const EmptyState(
+                  icon: Icons.restaurant_menu_rounded,
+                  title: 'No hay recetas disponibles',
+                  subtitle: 'Añadiremos recetas sugeridas cuando estén disponibles en la base de datos.',
+                )
+              else
+                ...recetas.map(
+                  (receta) => RecipeCard(
+                    receta: receta,
+                    onTap: () => onOpenRecipe(receta),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class ProductHorizontalList extends StatelessWidget {
   final List<Producto> productos;
@@ -73,18 +169,27 @@ class ProductGridCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Center(
-                // CAMBIO: Se sustituye el Emoji por la Imagen de la DB
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                clipBehavior: Clip.antiAlias,
+                alignment: Alignment.center,
                 child: producto.imagenUrl != null 
                   ? Image.network(
                       producto.imagenUrl!,
-                      fit: BoxFit.contain,
+                      fit: BoxFit.cover, // Imagen a sangre completa
+                      width: double.infinity,
+                      height: double.infinity,
                       errorBuilder: (context, error, stackTrace) => 
                         Text(producto.emoji, style: const TextStyle(fontSize: 54)),
                     )
                   : Text(producto.emoji, style: const TextStyle(fontSize: 54)),
               ),
             ),
+            const SizedBox(height: 8), // Separador extra por quitar el Center anterior
             Text(
               producto.nombre,
               maxLines: 3,
@@ -155,15 +260,17 @@ class CompactProductTile extends StatelessWidget {
             height: 62,
             width: 62,
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F7F7),
+              color: Colors.transparent,
               borderRadius: BorderRadius.circular(8),
             ),
+            clipBehavior: Clip.antiAlias,
             alignment: Alignment.center,
-            // CAMBIO: Se sustituye el Emoji por la Imagen en formato compacto
             child: producto.imagenUrl != null 
               ? Image.network(
                   producto.imagenUrl!,
-                  fit: BoxFit.contain,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
                   errorBuilder: (context, error, stackTrace) => 
                     Text(producto.emoji, style: const TextStyle(fontSize: 30)),
                 )
@@ -278,20 +385,19 @@ class ExpiryProductCard extends StatelessWidget {
               height: 78,
               width: 82,
               decoration: BoxDecoration(
-                color: AppTheme.greenLight,
-                borderRadius: BorderRadius.circular(14),
+                color: Colors.transparent, // CAMBIO: Sin fondo gris/verde
+                borderRadius: BorderRadius.circular(14), // CAMBIO: Bordes redondeados a 14
               ),
+              clipBehavior: Clip.antiAlias, // CAMBIO: Recorta la imagen a la forma del borde
               alignment: Alignment.center,
-              // CAMBIO: Imagen para la lista de productos próximos a caducar
               child: producto.imagenUrl != null 
-                ? Padding(
-                    padding: const EdgeInsets.all(6.0),
-                    child: Image.network(
-                        producto.imagenUrl!,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => 
-                          Text(producto.emoji, style: const TextStyle(fontSize: 38)),
-                      ),
+                ? Image.network(
+                    producto.imagenUrl!,
+                    fit: BoxFit.cover, // CAMBIO: Ocupa todo el espacio, adiós bordes
+                    width: double.infinity,
+                    height: double.infinity,
+                    errorBuilder: (context, error, stackTrace) => 
+                      Text(producto.emoji, style: const TextStyle(fontSize: 38)),
                   )
                 : Text(producto.emoji, style: const TextStyle(fontSize: 38)),
             ),
@@ -351,14 +457,21 @@ class RecipeCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // CAMBIO: Las recetas también pueden usar imagenUrl si la tienen
-              SizedBox(
-                width: 50,
-                height: 50,
+              Container(
+                width: 70, // Ajustado para hacer match visual con la ExpiryCard
+                height: 70,
+                decoration: BoxDecoration(
+                  color: Colors.transparent, // CAMBIO: Sin fondo
+                  borderRadius: BorderRadius.circular(14), // CAMBIO: Bordes redondeados a 14 (Igual que ExpiryCard)
+                ),
+                clipBehavior: Clip.antiAlias, // CAMBIO: Recorte de imagen activo
+                alignment: Alignment.center,
                 child: receta.imagenUrl != null 
                   ? Image.network(
                       receta.imagenUrl!,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.cover, // CAMBIO: Ocupa todo el espacio
+                      width: double.infinity,
+                      height: double.infinity,
                       errorBuilder: (context, error, stackTrace) => 
                         Text(receta.emoji, style: const TextStyle(fontSize: 42)),
                     )

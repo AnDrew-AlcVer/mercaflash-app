@@ -302,7 +302,7 @@ class _MainScreenState extends State<MainScreen> {
           categorias: _categorias,
           productos: _productos,
           carrito: _carrito,
-          onOpenCategory: (categoria) => _abrirCategoria(categoria.nombre),
+          // AQUÍ ES DONDE ESTABA EL ERROR: Hemos quitado onOpenCategory
           onAdd: _sumarProducto,
           onRemove: _restarProducto,
         ),

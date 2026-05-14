@@ -38,14 +38,32 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
             children: [
+              // CABECERA CON IMAGEN (Sustituye al emoji)
               Container(
-                height: 170,
+                height: 200, // Aumentado un poco para que luzca más la foto
+                width: double.infinity,
                 decoration: BoxDecoration(
                   color: AppTheme.greenLight,
                   borderRadius: BorderRadius.circular(22),
                 ),
+                clipBehavior: Clip.antiAlias, // Obliga a la imagen a ser redondeada
                 alignment: Alignment.center,
-                child: Text(widget.receta.emoji, style: const TextStyle(fontSize: 76)),
+                child: widget.receta.imagenUrl != null && widget.receta.imagenUrl!.isNotEmpty
+                    ? Image.network(
+                        widget.receta.imagenUrl!,
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                        // Si la imagen falla por cualquier motivo, sale el emoji de respaldo
+                        errorBuilder: (context, error, stackTrace) => 
+                          Text(widget.receta.emoji, style: const TextStyle(fontSize: 76)),
+                        // Indicador de carga mientras baja la foto
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const Center(child: CircularProgressIndicator());
+                        },
+                      )
+                    : Text(widget.receta.emoji, style: const TextStyle(fontSize: 76)),
               ),
               const SizedBox(height: 18),
               Text(
