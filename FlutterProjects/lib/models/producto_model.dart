@@ -32,14 +32,12 @@ class Producto {
   });
 
   factory Producto.fromMap(Map<String, dynamic> data) {
-    // 1. Calcular días de caducidad desde la fecha SQL
     int? diasCalculados;
     if (data['fecha_caducidad'] != null) {
       DateTime fecha = DateTime.parse(data['fecha_caducidad']);
       diasCalculados = fecha.difference(DateTime.now()).inDays;
     }
 
-    // 2. Gestionar la lógica de precios
     final precioOriginal = (data['precio_original'] as num?)?.toDouble() ?? 0;
     final precioOfertaRaw = (data['precio_oferta'] as num?)?.toDouble();
     final estaDeOferta = precioOfertaRaw != null &&
@@ -59,8 +57,8 @@ class Producto {
       precio: estaDeOferta ? precioOferta : precioOriginal,
       precioAnterior: estaDeOferta ? precioOriginal : null,
       diasCaducidad: diasCalculados,
-      // Usamos la nueva columna 'imagen' de tu DB
-      imagenUrl: data['imagen'], 
+      // Usamos .toString() para asegurar que pase a String puro
+      imagenUrl: data['imagen']?.toString(), 
       emoji: emojiIcon,
       esNovedad: data['es_novedad'] == true,
       esBajadaPrecio: estaDeOferta, 
@@ -70,9 +68,7 @@ class Producto {
   }
 
   bool get tieneCaducidad => diasCaducidad != null;
-
   bool get caducaHoy => diasCaducidad != null && diasCaducidad! <= 0;
-
   bool get caducaPronto =>
       diasCaducidad != null && diasCaducidad! > 0 && diasCaducidad! <= 2;
 
@@ -149,13 +145,13 @@ class Receta {
       etiqueta: 'Recomendado para ti',
       descripcion: 'Receta paso a paso para aprovechar tus productos.',
       tiempoMinutos: data['tiempo_minutos'] ?? 30,
-      // CORRECCIÓN: 'dificultad' en lugar de 'difficulty'
       dificultad: data['dificultad'] ?? 'Media', 
       raciones: 2,
       emoji: '👨‍🍳',
       ingredientes: listaIngredientes,
       pasos: listaPasos,
-      imagenUrl: data['imagen_url'], 
+      // CAMBIO: Se cambia 'imagen_url' por 'imagen' y se añade .toString()
+      imagenUrl: data['imagen']?.toString(), 
     );
   }
 
