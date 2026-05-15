@@ -26,6 +26,7 @@ class HomePage extends StatelessWidget {
     required this.onOpenCategories,
   });
 
+
   @override
   Widget build(BuildContext context) {
     final novedades = productos.where((producto) => producto.esNovedad).toList();
@@ -44,10 +45,29 @@ class HomePage extends StatelessWidget {
         ),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.only(bottom: 22),
+            padding: const EdgeInsets.only(bottom: 28),
             children: [
               const DeliveryBanner(),
+
+              const SizedBox(height: 8),
               PromoHeroCard(onTap: onOpenFlash),
+
+              const SizedBox(height: 18),
+              const SectionTitle(
+                title: 'Bajadas de precio',
+                subtitle: 'Ahorra en productos seleccionados',
+              ),
+              ProductHorizontalList(
+                productos: bajadas,
+                carrito: carrito,
+                onAdd: onAdd,
+                onRemove: onRemove,
+              ),
+
+              const SizedBox(height: 16),
+              FlashEntryCard(productos: flash, onTap: onOpenFlash),
+
+              const SizedBox(height: 18),
               const SectionTitle(
                 title: 'Novedades',
                 subtitle: 'Productos recién añadidos o mejorados',
@@ -58,15 +78,12 @@ class HomePage extends StatelessWidget {
                 onAdd: onAdd,
                 onRemove: onRemove,
               ),
-              const SectionTitle(title: 'Bajadas de precio'),
-              ProductHorizontalList(
-                productos: bajadas,
-                carrito: carrito,
-                onAdd: onAdd,
-                onRemove: onRemove,
+
+              const SizedBox(height: 18),
+              const SectionTitle(
+                title: 'El bronceado perfecto',
+                subtitle: 'Cuidado facial y corporal para el verano',
               ),
-              FlashEntryCard(productos: flash, onTap: onOpenFlash),
-              const SectionTitle(title: 'El bronceado perfecto'),
               ProductHorizontalList(
                 productos: solares,
                 carrito: carrito,
@@ -79,4 +96,5 @@ class HomePage extends StatelessWidget {
       ],
     );
   }
+
 }
