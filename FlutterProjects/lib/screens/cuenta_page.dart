@@ -21,9 +21,9 @@ class CuentaPage extends StatefulWidget {
 }
 
 class _CuentaPageState extends State<CuentaPage> {
-  final TextEditingController _nombreController = TextEditingController(text: 'Jordi');
-  final TextEditingController _emailController = TextEditingController(text: 'jordi@email.com');
-  final TextEditingController _passwordController = TextEditingController(text: '123456');
+  final TextEditingController _nombreController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   @override
   void dispose() {
@@ -33,18 +33,53 @@ class _CuentaPageState extends State<CuentaPage> {
     super.dispose();
   }
 
+  bool _emailValido(String email) {
+    final regex = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$');
+    return regex.hasMatch(email.trim());
+  }
+
+  void _iniciarSesion() {
+    final nombre = _nombreController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (nombre.isEmpty || email.isEmpty || password.isEmpty) {
+      _mostrarMensaje('Completa nombre, correo y contraseña');
+      return;
+    }
+
+    if (!_emailValido(email)) {
+      _mostrarMensaje('Introduce un correo electrónico válido');
+      return;
+    }
+
+    widget.onLogin(nombre);
+  }
+
+  void _mostrarMensaje(String texto) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(texto),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppTheme.red,
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.sesionIniciada) {
       return Column(
         children: [
-          SimpleHeader(title: widget.nombreUsuario),
+          SimpleHeader(title: 'Hola, ${widget.nombreUsuario}'),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(18, 4, 18, 24),
               children: [
                 const Text(
-                  'Entrega en 46026',
+                  'Sesión iniciada correctamente',
                   style: TextStyle(
                     color: AppTheme.green,
                     fontWeight: FontWeight.w900,
@@ -94,7 +129,7 @@ class _CuentaPageState extends State<CuentaPage> {
         ),
         const SizedBox(height: 6),
         const Text(
-          'Accede para ver tus pedidos, direcciones y carrito guardado.',
+          'Accede para tramitar pedidos, guardar direcciones y consultar tu información.',
           style: TextStyle(color: AppTheme.gray, height: 1.35),
         ),
         const SizedBox(height: 24),
@@ -103,7 +138,7 @@ class _CuentaPageState extends State<CuentaPage> {
         LoginField(controller: _passwordController, label: 'Contraseña', obscure: true),
         const SizedBox(height: 12),
         AnimatedTap(
-          onTap: () => widget.onLogin(_nombreController.text),
+          onTap: _iniciarSesion,
           child: Container(
             height: 52,
             decoration: BoxDecoration(
@@ -129,8 +164,12 @@ class _CuentaPageState extends State<CuentaPage> {
             borderRadius: BorderRadius.circular(18),
           ),
           child: const Text(
-            'Demo: puedes pulsar iniciar sesión directamente. Luego verás el área de cuenta como en la app real.',
-            style: TextStyle(color: AppTheme.green, height: 1.35, fontWeight: FontWeight.w700),
+            'Si has entrado como invitado, inicia sesión o crea una cuenta para poder tramitar el pedido.',
+            style: TextStyle(
+              color: AppTheme.green,
+              height: 1.35,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],

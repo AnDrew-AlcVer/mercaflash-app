@@ -51,38 +51,63 @@ class CartItemTile extends StatelessWidget {
 
 class CheckoutBar extends StatelessWidget {
   final double total;
+  final VoidCallback onCheckout;
 
-  const CheckoutBar({super.key, required this.total});
+  const CheckoutBar({
+    super.key,
+    required this.total,
+    required this.onCheckout,
+  });
 
   @override
   Widget build(BuildContext context) {
     final totalTexto = '${total.toStringAsFixed(2).replaceAll('.', ',')} €';
+
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
       decoration: const BoxDecoration(
         color: AppTheme.white,
-        boxShadow: [BoxShadow(color: Color(0x1A000000), blurRadius: 18, offset: Offset(0, -6))],
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x1A000000),
+            blurRadius: 18,
+            offset: Offset(0, -6),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              const Text('Total', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+              const Text(
+                'Total',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+              ),
               const Spacer(),
-              Text(totalTexto, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+              Text(
+                totalTexto,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+              ),
             ],
           ),
           const SizedBox(height: 10),
           AnimatedTap(
-            onTap: () {},
+            onTap: onCheckout,
             child: Container(
               height: 52,
-              decoration: BoxDecoration(color: AppTheme.green, borderRadius: BorderRadius.circular(26)),
+              decoration: BoxDecoration(
+                color: AppTheme.green,
+                borderRadius: BorderRadius.circular(26),
+              ),
               alignment: Alignment.center,
               child: const Text(
                 'Tramitar pedido',
-                style: TextStyle(color: AppTheme.white, fontWeight: FontWeight.w900, fontSize: 16),
+                style: TextStyle(
+                  color: AppTheme.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                ),
               ),
             ),
           ),

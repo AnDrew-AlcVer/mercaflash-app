@@ -15,7 +15,14 @@ import '../widgets/cart_widgets.dart';
 enum SpecialPage { category, recipe }
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final bool sesionInicialIniciada;
+  final String nombreUsuarioInicial;
+
+  const MainScreen({
+    super.key,
+    this.sesionInicialIniciada = false,
+    this.nombreUsuarioInicial = 'Jordi',
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -26,8 +33,9 @@ class _MainScreenState extends State<MainScreen> {
 
   int _selectedIndex = 0;
   bool _cargando = true;
-  bool _sesionIniciada = false;
-  String _nombreUsuario = 'Jordi';
+
+  late bool _sesionIniciada;
+  late String _nombreUsuario;
 
   SpecialPage? _specialPage;
   String? _categoriaSeleccionada;
@@ -43,6 +51,10 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+
+    _sesionIniciada = widget.sesionInicialIniciada;
+    _nombreUsuario = widget.nombreUsuarioInicial;
+
     _cargarDatos();
   }
 
@@ -194,7 +206,7 @@ class _MainScreenState extends State<MainScreen> {
   void _cerrarSesion() {
     setState(() {
       _sesionIniciada = false;
-      _nombreUsuario = 'Jordi';
+      _nombreUsuario = 'Invitado';
     });
     _mostrarSnack('Sesión cerrada');
   }
@@ -248,7 +260,8 @@ class _MainScreenState extends State<MainScreen> {
           ),
           NavigationDestination(
             icon: CartNavIcon(count: _totalUnidadesCarrito, selected: false),
-            selectedIcon: CartNavIcon(count: _totalUnidadesCarrito, selected: true),
+            selectedIcon:
+                CartNavIcon(count: _totalUnidadesCarrito, selected: true),
             label: 'Lista',
           ),
           const NavigationDestination(
@@ -272,7 +285,8 @@ class _MainScreenState extends State<MainScreen> {
       );
     }
 
-    if (_specialPage == SpecialPage.category && _categoriaSeleccionada != null) {
+    if (_specialPage == SpecialPage.category &&
+        _categoriaSeleccionada != null) {
       return ProductosCategoriaPage(
         categoria: _categoriaSeleccionada!,
         productos: _productos
@@ -302,7 +316,6 @@ class _MainScreenState extends State<MainScreen> {
           categorias: _categorias,
           productos: _productos,
           carrito: _carrito,
-          // AQUÍ ES DONDE ESTABA EL ERROR: Hemos quitado onOpenCategory
           onAdd: _sumarProducto,
           onRemove: _restarProducto,
         ),
@@ -318,10 +331,15 @@ class _MainScreenState extends State<MainScreen> {
           productos: _productos,
           carrito: _carrito,
           total: _totalCarrito,
+          sesionIniciada: _sesionIniciada,
           onAdd: _sumarProducto,
           onRemove: _restarProducto,
           onClear: _vaciarCarrito,
           onContinueShopping: _irAHome,
+          onRequireLogin: () {
+            _mostrarSnack('Para tramitar el pedido necesitas iniciar sesión');
+            _cambiarPantalla(4);
+          },
         ),
         CuentaPage(
           sesionIniciada: _sesionIniciada,
@@ -333,3 +351,17 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

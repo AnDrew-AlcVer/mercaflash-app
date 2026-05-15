@@ -9,21 +9,46 @@ class CarritoPage extends StatelessWidget {
   final List<Producto> productos;
   final Map<String, int> carrito;
   final double total;
+  final bool sesionIniciada;
   final ValueChanged<Producto> onAdd;
   final ValueChanged<Producto> onRemove;
   final VoidCallback onClear;
   final VoidCallback onContinueShopping;
+  final VoidCallback onRequireLogin;
 
   const CarritoPage({
     super.key,
     required this.productos,
     required this.carrito,
     required this.total,
+    required this.sesionIniciada,
     required this.onAdd,
     required this.onRemove,
     required this.onClear,
     required this.onContinueShopping,
+    required this.onRequireLogin,
   });
+
+  void _tramitarPedido(BuildContext context) {
+    if (!sesionIniciada) {
+      onRequireLogin();
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('Pedido tramitado correctamente'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppTheme.green,
+          duration: const Duration(milliseconds: 1600),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +64,8 @@ class CarritoPage extends StatelessWidget {
               ? EmptyState(
                   icon: Icons.shopping_cart_outlined,
                   title: 'Tu carrito está vacío',
-                  subtitle: 'Añade productos desde Inicio, Categorías u Ofertas Flash.',
+                  subtitle:
+                      'Añade productos desde Inicio, Categorías u Ofertas Flash.',
                   actionText: 'Seguir comprando',
                   onAction: onContinueShopping,
                 )
@@ -93,8 +119,27 @@ class CarritoPage extends StatelessWidget {
                   ],
                 ),
         ),
-        if (productosCarrito.isNotEmpty) CheckoutBar(total: total),
+        if (productosCarrito.isNotEmpty)
+          CheckoutBar(
+            total: total,
+            onCheckout: () => _tramitarPedido(context),
+          ),
       ],
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
