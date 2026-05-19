@@ -29,7 +29,27 @@ class CartItemTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(producto.emoji, style: const TextStyle(fontSize: 34)),
+          // Aplicando tu lógica para renderizar imagenUrl o fallback a emoji
+          Container(
+            height: 50,
+            width: 50,
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            clipBehavior: Clip.antiAlias,
+            alignment: Alignment.center,
+            child: producto.imagenUrl != null 
+              ? Image.network(
+                  producto.imagenUrl!,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                  errorBuilder: (context, error, stackTrace) => 
+                    Text(producto.emoji, style: const TextStyle(fontSize: 34)),
+                )
+              : Text(producto.emoji, style: const TextStyle(fontSize: 34)),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
