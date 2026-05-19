@@ -23,10 +23,7 @@ class AppTopBar extends StatelessWidget {
       color: AppTheme.white,
       child: Row(
         children: [
-          IconButton(
-            onPressed: onOpenCategories,
-            icon: const Icon(Icons.menu_rounded, color: AppTheme.black),
-          ),
+          const SizedBox(width: 48),
           const Expanded(
             child: Text(
               'MERCADONA',
@@ -181,7 +178,7 @@ class PromoHeroCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Ahorra antes de que caduque',
+                      'Ahorra con nuestras recetas',
                       style: TextStyle(
                         color: AppTheme.white,
                         fontSize: 23,
