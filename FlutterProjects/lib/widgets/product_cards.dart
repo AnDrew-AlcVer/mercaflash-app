@@ -117,7 +117,7 @@ class ProductHorizontalList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 262,
+      height: 300,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 14),
         scrollDirection: Axis.horizontal,
@@ -203,6 +203,16 @@ class ProductGridCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 11, color: AppTheme.gray),
             ),
+            if (producto.tieneAlertaAlergenos) ...[
+              const SizedBox(height: 4),
+              AllergenWarningBanner(
+                text: 'Contiene ${producto.alertaAlergenosTexto}',
+                compact: true,
+              ),
+            ] else if (producto.tieneAlergenos) ...[
+              const SizedBox(height: 4),
+              AllergenTextLine(text: 'Alérgenos: ${producto.alergenosTexto}'),
+            ],
             const SizedBox(height: 8),
             Wrap(
               spacing: 4,
@@ -289,6 +299,16 @@ class CompactProductTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(producto.precioTexto, style: const TextStyle(fontWeight: FontWeight.w900)),
+                if (producto.tieneAlertaAlergenos) ...[
+                  const SizedBox(height: 4),
+                  AllergenWarningBanner(
+                    text: 'Contiene ${producto.alertaAlergenosTexto}',
+                    compact: true,
+                  ),
+                ] else if (producto.tieneAlergenos) ...[
+                  const SizedBox(height: 4),
+                  AllergenTextLine(text: 'Alérgenos: ${producto.alergenosTexto}'),
+                ],
               ],
             ),
           ),
@@ -424,6 +444,16 @@ class ExpiryProductCard extends StatelessWidget {
                       Text(producto.caducidadTexto, style: TextStyle(color: badgeColor, fontWeight: FontWeight.w900, fontSize: 12)),
                     ],
                   ),
+                  if (producto.tieneAlertaAlergenos) ...[
+                    const SizedBox(height: 6),
+                    AllergenWarningBanner(
+                      text: 'Contiene ${producto.alertaAlergenosTexto}',
+                      compact: true,
+                    ),
+                  ] else if (producto.tieneAlergenos) ...[
+                    const SizedBox(height: 6),
+                    AllergenTextLine(text: 'Alérgenos: ${producto.alergenosTexto}'),
+                  ],
                 ],
               ),
             ),
@@ -484,7 +514,24 @@ class RecipeCard extends StatelessWidget {
                   children: [
                     Text(receta.titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 4),
-                    Text(receta.etiqueta, style: const TextStyle(color: AppTheme.green, fontWeight: FontWeight.w800, fontSize: 12)),
+                    Text(
+                      receta.etiqueta,
+                      style: TextStyle(
+                        color: receta.tieneAlertaAlergenos ? AppTheme.orange : AppTheme.green,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (receta.tieneAlertaAlergenos) ...[
+                      const SizedBox(height: 6),
+                      AllergenWarningBanner(
+                        text: 'Contiene ${receta.alertaAlergenosTexto}',
+                        compact: true,
+                      ),
+                    ] else if (receta.tieneAlergenos) ...[
+                      const SizedBox(height: 6),
+                      AllergenTextLine(text: 'Alérgenos: ${receta.alergenosTexto}'),
+                    ],
                     const SizedBox(height: 8),
                     Row(
                       children: [

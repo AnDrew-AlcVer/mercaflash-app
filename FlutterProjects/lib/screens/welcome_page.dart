@@ -1,15 +1,27 @@
 import 'package:flutter/material.dart';
 
+import '../models/producto_model.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ui_components.dart';
+
+typedef WelcomeAuthCallback = Future<String?> Function({
+  required String nombre,
+  required String email,
+  required String password,
+  required bool registrar,
+  required List<int> alergenosIds,
+});
 
 class WelcomePage extends StatefulWidget {
   final VoidCallback onContinueAsGuest;
-  final ValueChanged<String> onLogin;
+  final WelcomeAuthCallback onAuth;
+  final List<Alergeno> alergenosDisponibles;
 
   const WelcomePage({
     super.key,
     required this.onContinueAsGuest,
-    required this.onLogin,
+    required this.onAuth,
+    required this.alergenosDisponibles,
   });
 
   @override
@@ -19,22 +31,17 @@ class WelcomePage extends StatefulWidget {
 class _WelcomePageState extends State<WelcomePage> {
   final TextEditingController _cpController = TextEditingController();
   final TextEditingController _emailAvisoController = TextEditingController();
-
   final TextEditingController _nombreController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController =  TextEditingController();
-
+  final TextEditingController _passwordController = TextEditingController();
 
   bool _modoInvitado = false;
-
-  bool _emailValido(String email) {
-    final regex = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$');
-    return regex.hasMatch(email.trim());
-  }
-
   bool _mostrarLogin = false;
+  bool _registro = false;
+  bool _cargando = false;
   bool? _servicioDisponible;
   List<String> _tiendasCercanas = [];
+  final Set<int> _alergenosSeleccionados = {};
 
   final Map<String, List<String>> _tiendasPorCodigoPostal = {
     '03801': [
@@ -67,6 +74,11 @@ class _WelcomePageState extends State<WelcomePage> {
     super.dispose();
   }
 
+  bool _emailValido(String email) {
+    final regex = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$');
+    return regex.hasMatch(email.trim());
+  }
+
   void _comprobarCodigoPostal() {
     final cp = _cpController.text.trim();
 
@@ -94,34 +106,68 @@ class _WelcomePageState extends State<WelcomePage> {
     });
   }
 
-  void _entrarConCuenta() {
-  final nombre = _nombreController.text.trim();
-  final email = _emailController.text.trim();
-  final password = _passwordController.text.trim();
+  Future<void> _autenticar() async {
+    final nombre = _nombreController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-  if (nombre.isEmpty || email.isEmpty || password.isEmpty) {
-    _mostrarMensaje('Completa nombre, correo y contraseña');
-    return;
+    if (_registro && nombre.isEmpty) {
+      _mostrarMensaje('Introduce tu nombre');
+      return;
+    }
+
+    if (email.isEmpty || password.isEmpty) {
+      _mostrarMensaje('Completa correo y contraseña');
+      return;
+    }
+
+    if (!_emailValido(email)) {
+      _mostrarMensaje('Introduce un correo electrónico válido');
+      return;
+    }
+
+    if (password.length < 6) {
+      _mostrarMensaje('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    setState(() => _cargando = true);
+    final error = await widget.onAuth(
+      nombre: nombre,
+      email: email,
+      password: password,
+      registrar: _registro,
+      alergenosIds: _alergenosSeleccionados.toList(),
+    );
+
+    if (!mounted) return;
+    setState(() => _cargando = false);
+
+    if (error != null) {
+      _mostrarMensaje(error);
+    }
   }
 
-  if (!_emailValido(email)) {
-    _mostrarMensaje('Introduce un correo electrónico válido');
-    return;
-  }
-
-  widget.onLogin(nombre);
+  void _toggleAlergeno(Alergeno alergeno, bool selected) {
+    setState(() {
+      if (selected) {
+        _alergenosSeleccionados.add(alergeno.id);
+      } else {
+        _alergenosSeleccionados.remove(alergeno.id);
+      }
+    });
   }
 
   void _mostrarMensaje(String texto) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        content: Text(texto),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppTheme.red,
-      ),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(texto),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppTheme.red,
+        ),
+      );
   }
 
   @override
@@ -141,79 +187,118 @@ class _WelcomePageState extends State<WelcomePage> {
             const Text(
               'Bienvenid@ a Mercadona',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.w900,
-              ),
+              style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
             const Text(
               'Compra online, consulta productos y descubre ofertas cerca de ti.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppTheme.gray,
-                height: 1.4,
-                fontSize: 15,
-              ),
+              style: TextStyle(color: AppTheme.gray, height: 1.4, fontSize: 15),
             ),
             const SizedBox(height: 34),
-
-            _PrimaryButton(
-              text: 'Crear cuenta / Iniciar sesión',
-              onTap: _abrirLogin,
-            ),
+            _PrimaryButton(text: 'Crear cuenta / Iniciar sesión', onTap: _abrirLogin),
             const SizedBox(height: 14),
-            _SecondaryButton(
-              text: 'Entrar como invitado',
-              onTap: _abrirModoInvitado,
-            ),
-
+            _SecondaryButton(text: 'Entrar como invitado', onTap: _abrirModoInvitado),
             if (_mostrarLogin) ...[
               const SizedBox(height: 30),
-              const Text(
-                'Crear cuenta o iniciar sesión',
-                style: TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.w900,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ModePill(
+                      text: 'Iniciar sesión',
+                      selected: !_registro,
+                      onTap: () => setState(() => _registro = false),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _ModePill(
+                      text: 'Registrarme',
+                      selected: _registro,
+                      onTap: () => setState(() => _registro = true),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Text(
+                _registro ? 'Crea tu cuenta' : 'Inicia sesión',
+                style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Introduce tus datos para acceder a tu cuenta y poder tramitar pedidos.',
-                style: TextStyle(color: AppTheme.gray, height: 1.35),
+              Text(
+                _registro
+                    ? 'Marca tus alérgenos al registrarte para recibir avisos personalizados.'
+                    : 'Accede con tu correo y contraseña para ver tu perfil.',
+                style: const TextStyle(color: AppTheme.gray, height: 1.35),
               ),
               const SizedBox(height: 16),
-              TextField(
-                controller: _nombreController,
-                decoration: _inputDecoration('Nombre'),
-              ),
-              const SizedBox(height: 12),
+              if (_registro)
+                TextField(
+                  controller: _nombreController,
+                  style: const TextStyle(color: AppTheme.black, fontWeight: FontWeight.w600),
+                  decoration: _inputDecoration('Nombre'),
+                ),
+              if (_registro) const SizedBox(height: 12),
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
+                style: const TextStyle(color: AppTheme.black, fontWeight: FontWeight.w600),
                 decoration: _inputDecoration('Correo electrónico'),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _passwordController,
                 obscureText: true,
+                style: const TextStyle(color: AppTheme.black, fontWeight: FontWeight.w600),
                 decoration: _inputDecoration('Contraseña'),
               ),
+              if (_registro) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Alérgenos de tu perfil',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 5),
+                      const Text(
+                        'Puedes dejarlo vacío y configurarlo más tarde desde Mi cuenta.',
+                        style: TextStyle(color: AppTheme.gray, fontSize: 13, height: 1.3),
+                      ),
+                      const SizedBox(height: 10),
+                      AllergenSelector(
+                        alergenos: widget.alergenosDisponibles,
+                        selectedIds: _alergenosSeleccionados,
+                        onChanged: _toggleAlergeno,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               _PrimaryButton(
-                text: 'Entrar',
-                onTap: _entrarConCuenta,
+                text: _cargando
+                    ? 'Cargando...'
+                    : _registro
+                        ? 'Crear cuenta'
+                        : 'Entrar',
+                onTap: _cargando ? () {} : _autenticar,
               ),
             ],
-
             if (_modoInvitado) ...[
               const SizedBox(height: 30),
               const Text(
                 'Comprueba tu zona',
-                style: TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.w900,
-                ),
+                style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -224,41 +309,32 @@ class _WelcomePageState extends State<WelcomePage> {
               TextField(
                 controller: _cpController,
                 keyboardType: TextInputType.number,
+                style: const TextStyle(color: AppTheme.black, fontWeight: FontWeight.w600),
                 decoration: _inputDecoration('Código postal'),
               ),
               const SizedBox(height: 14),
-              _PrimaryButton(
-                text: 'Comprobar disponibilidad',
-                onTap: _comprobarCodigoPostal,
-              ),
+              _PrimaryButton(text: 'Comprobar disponibilidad', onTap: _comprobarCodigoPostal),
             ],
-
             if (_servicioDisponible == true) ...[
               const SizedBox(height: 22),
               _ResultCard(
                 icon: Icons.check_circle_rounded,
                 color: AppTheme.green,
                 title: 'Entrega disponible',
-                text:
-                    'Hay reparto en tu zona. Puedes entrar como invitado y añadir productos al carrito.',
+                text: 'Hay reparto en tu zona. Puedes entrar como invitado y añadir productos al carrito.',
               ),
               const SizedBox(height: 14),
               _StoresCard(tiendas: _tiendasCercanas),
               const SizedBox(height: 18),
-              _PrimaryButton(
-                text: 'Continuar como invitado',
-                onTap: widget.onContinueAsGuest,
-              ),
+              _PrimaryButton(text: 'Continuar como invitado', onTap: widget.onContinueAsGuest),
             ],
-
             if (_servicioDisponible == false) ...[
               const SizedBox(height: 22),
               _ResultCard(
                 icon: Icons.info_rounded,
                 color: Colors.orange,
                 title: 'Todavía no repartimos en tu zona',
-                text:
-                    'Puedes seguir navegando por la app. También puedes dejarnos tu correo y te avisaremos cuando haya entrega disponible.',
+                text: 'Puedes seguir navegando por la app. También puedes dejarnos tu correo y te avisaremos cuando haya entrega disponible.',
               ),
               const SizedBox(height: 14),
               const _StoresCard(
@@ -272,6 +348,7 @@ class _WelcomePageState extends State<WelcomePage> {
               TextField(
                 controller: _emailAvisoController,
                 keyboardType: TextInputType.emailAddress,
+                style: const TextStyle(color: AppTheme.black, fontWeight: FontWeight.w600),
                 decoration: _inputDecoration('Correo para avisarte'),
               ),
               const SizedBox(height: 18),
@@ -279,12 +356,10 @@ class _WelcomePageState extends State<WelcomePage> {
                 text: 'Continuar igualmente',
                 onTap: () {
                   final emailAviso = _emailAvisoController.text.trim();
-
                   if (emailAviso.isNotEmpty && !_emailValido(emailAviso)) {
                     _mostrarMensaje('Introduce un correo electrónico válido');
                     return;
                   }
-
                   widget.onContinueAsGuest();
                 },
               ),
@@ -309,14 +384,46 @@ class _WelcomePageState extends State<WelcomePage> {
   }
 }
 
+class _ModePill extends StatelessWidget {
+  final String text;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ModePill({
+    required this.text,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 42,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? AppTheme.green : AppTheme.white,
+          borderRadius: BorderRadius.circular(21),
+          border: Border.all(color: selected ? AppTheme.green : AppTheme.border),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: selected ? AppTheme.white : AppTheme.black,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _PrimaryButton extends StatelessWidget {
   final String text;
   final VoidCallback onTap;
 
-  const _PrimaryButton({
-    required this.text,
-    required this.onTap,
-  });
+  const _PrimaryButton({required this.text, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -331,11 +438,7 @@ class _PrimaryButton extends StatelessWidget {
         alignment: Alignment.center,
         child: Text(
           text,
-          style: const TextStyle(
-            color: AppTheme.white,
-            fontWeight: FontWeight.w900,
-            fontSize: 16,
-          ),
+          style: const TextStyle(color: AppTheme.white, fontWeight: FontWeight.w900, fontSize: 16),
         ),
       ),
     );
@@ -346,10 +449,7 @@ class _SecondaryButton extends StatelessWidget {
   final String text;
   final VoidCallback onTap;
 
-  const _SecondaryButton({
-    required this.text,
-    required this.onTap,
-  });
+  const _SecondaryButton({required this.text, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -365,11 +465,7 @@ class _SecondaryButton extends StatelessWidget {
         alignment: Alignment.center,
         child: Text(
           text,
-          style: const TextStyle(
-            color: AppTheme.black,
-            fontWeight: FontWeight.w900,
-            fontSize: 16,
-          ),
+          style: const TextStyle(color: AppTheme.black, fontWeight: FontWeight.w900, fontSize: 16),
         ),
       ),
     );
@@ -408,20 +504,12 @@ class _ResultCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 17,
-                  ),
+                  style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 17),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   text,
-                  style: const TextStyle(
-                    color: AppTheme.gray,
-                    height: 1.35,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: const TextStyle(color: AppTheme.gray, height: 1.35, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -435,9 +523,7 @@ class _ResultCard extends StatelessWidget {
 class _StoresCard extends StatelessWidget {
   final List<String> tiendas;
 
-  const _StoresCard({
-    required this.tiendas,
-  });
+  const _StoresCard({required this.tiendas});
 
   @override
   Widget build(BuildContext context) {
@@ -451,13 +537,7 @@ class _StoresCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Tiendas cercanas',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 16,
-            ),
-          ),
+          const Text('Tiendas cercanas', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
           const SizedBox(height: 12),
           ...tiendas.map(
             (tienda) => Padding(
@@ -467,12 +547,7 @@ class _StoresCard extends StatelessWidget {
                   const Icon(Icons.storefront_outlined, size: 22),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      tienda,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    child: Text(tienda, style: const TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),

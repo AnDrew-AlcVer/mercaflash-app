@@ -75,6 +75,22 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
                 widget.receta.descripcion,
                 style: const TextStyle(color: AppTheme.gray, height: 1.35),
               ),
+              if (widget.receta.tieneAlertaAlergenos) ...[
+                const SizedBox(height: 12),
+                AllergenWarningBanner(
+                  text: 'Esta receta contiene ${widget.receta.alertaAlergenosTexto}, marcado en tu perfil.',
+                ),
+              ] else if (widget.receta.tieneAlergenos) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.greenLight,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: AllergenTextLine(text: 'Alérgenos de la receta: ${widget.receta.alergenosTexto}'),
+                ),
+              ],
               const SizedBox(height: 14),
               Wrap(
                 spacing: 8,
@@ -257,12 +273,27 @@ class _MissingIngredientsBox extends StatelessWidget {
                   color: yaEnCarrito ? AppTheme.green : AppTheme.black,
                 ),
               ),
-              subtitle: Text(
-                yaEnCarrito
-                    ? 'Ya está en tu carrito'
-                    : item.ingrediente.cantidad.isEmpty
-                        ? item.producto.precioTexto
-                        : '${item.ingrediente.cantidad} · ${item.producto.precioTexto}',
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    yaEnCarrito
+                        ? 'Ya está en tu carrito'
+                        : item.ingrediente.cantidad.isEmpty
+                            ? item.producto.precioTexto
+                            : '${item.ingrediente.cantidad} · ${item.producto.precioTexto}',
+                  ),
+                  if (item.producto.tieneAlertaAlergenos) ...[
+                    const SizedBox(height: 5),
+                    AllergenWarningBanner(
+                      text: 'Contiene ${item.producto.alertaAlergenosTexto}',
+                      compact: true,
+                    ),
+                  ] else if (item.producto.tieneAlergenos) ...[
+                    const SizedBox(height: 5),
+                    AllergenTextLine(text: 'Alérgenos: ${item.producto.alergenosTexto}'),
+                  ],
+                ],
               ),
             );
           }),

@@ -299,12 +299,18 @@ class LoginField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final bool obscure;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
 
   const LoginField({
     super.key,
     required this.controller,
     required this.label,
     this.obscure = false,
+    this.keyboardType,
+    this.textInputAction,
+    this.onSubmitted,
   });
 
   @override
@@ -314,10 +320,28 @@ class LoginField extends StatelessWidget {
       child: TextField(
         controller: controller,
         obscureText: obscure,
+        keyboardType: keyboardType,
+        textInputAction: textInputAction,
+        onSubmitted: onSubmitted,
+        cursorColor: AppTheme.green,
+        style: const TextStyle(
+          color: AppTheme.black,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
         decoration: InputDecoration(
           labelText: label,
+          labelStyle: const TextStyle(
+            color: AppTheme.gray,
+            fontWeight: FontWeight.w700,
+          ),
+          floatingLabelStyle: const TextStyle(
+            color: AppTheme.green,
+            fontWeight: FontWeight.w800,
+          ),
           filled: true,
           fillColor: AppTheme.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 17),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: const BorderSide(color: AppTheme.border),
@@ -345,27 +369,58 @@ class IngredientRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            ingrediente.disponible ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-            color: ingrediente.disponible ? AppTheme.green : AppTheme.gray,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              ingrediente.cantidad.isEmpty ? ingrediente.nombre : '${ingrediente.nombre} (${ingrediente.cantidad})',
-              style: TextStyle(
-                fontWeight: ingrediente.disponible ? FontWeight.w900 : FontWeight.w600,
-                color: ingrediente.disponible ? AppTheme.green : AppTheme.black,
+          Row(
+            children: [
+              Icon(
+                ingrediente.disponible
+                    ? Icons.check_circle_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                color: ingrediente.tieneAlertaAlergenos
+                    ? AppTheme.orange
+                    : ingrediente.disponible
+                        ? AppTheme.green
+                        : AppTheme.gray,
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  ingrediente.cantidad.isEmpty
+                      ? ingrediente.nombre
+                      : '${ingrediente.nombre} (${ingrediente.cantidad})',
+                  style: TextStyle(
+                    fontWeight: ingrediente.disponible ? FontWeight.w900 : FontWeight.w600,
+                    color: ingrediente.tieneAlertaAlergenos
+                        ? AppTheme.orange
+                        : ingrediente.disponible
+                            ? AppTheme.green
+                            : AppTheme.black,
+                  ),
+                ),
+              ),
+              if (ingrediente.caducidadTexto != null)
+                Text(
+                  ingrediente.caducidadTexto!,
+                  style: const TextStyle(
+                    color: AppTheme.orange,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+            ],
           ),
-          if (ingrediente.caducidadTexto != null)
-            Text(
-              ingrediente.caducidadTexto!,
-              style: const TextStyle(color: AppTheme.orange, fontWeight: FontWeight.w900, fontSize: 12),
+          if (ingrediente.tieneAlertaAlergenos) ...[
+            const SizedBox(height: 5),
+            AllergenWarningBanner(
+              text: 'Este ingrediente contiene ${ingrediente.alertaAlergenosTexto}',
+              compact: true,
             ),
+          ] else if (ingrediente.tieneAlergenos) ...[
+            const SizedBox(height: 5),
+            AllergenTextLine(text: 'Alérgenos: ${ingrediente.alergenosTexto}'),
+          ],
         ],
       ),
     );
@@ -458,6 +513,126 @@ class EmptyState extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+
+class AllergenSelector extends StatelessWidget {
+  final List<Alergeno> alergenos;
+  final Set<int> selectedIds;
+  final void Function(Alergeno alergeno, bool selected) onChanged;
+
+  const AllergenSelector({
+    super.key,
+    required this.alergenos,
+    required this.selectedIds,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (alergenos.isEmpty) {
+      return const Text(
+        'No hay alérgenos configurados todavía.',
+        style: TextStyle(color: AppTheme.gray, fontSize: 13),
+      );
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: alergenos.map((alergeno) {
+        final selected = selectedIds.contains(alergeno.id);
+        return FilterChip(
+          selected: selected,
+          label: Text(alergeno.nombre),
+          selectedColor: AppTheme.greenLight,
+          checkmarkColor: AppTheme.green,
+          side: BorderSide(
+            color: selected ? AppTheme.green : AppTheme.border,
+          ),
+          labelStyle: TextStyle(
+            color: selected ? AppTheme.green : AppTheme.black,
+            fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
+          ),
+          onSelected: (value) => onChanged(alergeno, value),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class AllergenWarningBanner extends StatelessWidget {
+  final String text;
+  final bool compact;
+
+  const AllergenWarningBanner({
+    super.key,
+    required this.text,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 12,
+        vertical: compact ? 6 : 10,
+      ),
+      decoration: BoxDecoration(
+        color: AppTheme.orangeLight,
+        borderRadius: BorderRadius.circular(compact ? 10 : 14),
+        border: Border.all(color: AppTheme.orange.withOpacity(0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.warning_amber_rounded, color: AppTheme.orange, size: compact ? 16 : 20),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: AppTheme.orange,
+                fontWeight: FontWeight.w900,
+                fontSize: compact ? 11 : 13,
+                height: 1.2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class AllergenTextLine extends StatelessWidget {
+  final String text;
+
+  const AllergenTextLine({super.key, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(Icons.info_outline_rounded, size: 14, color: AppTheme.gray),
+        const SizedBox(width: 5),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppTheme.gray,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              height: 1.2,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

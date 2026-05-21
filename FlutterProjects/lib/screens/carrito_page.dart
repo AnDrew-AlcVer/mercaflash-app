@@ -35,30 +35,6 @@ class CarritoPage extends StatelessWidget {
       return;
     }
 
-    final productosCarrito = productos
-        .where((producto) => carrito.containsKey(producto.id))
-        .toList();
-
-    final ticket = StringBuffer();
-    ticket.writeln('***** TICKET DE COMPRA *****');
-    ticket.writeln('Fecha: ${DateTime.now()}');
-    ticket.writeln('');
-
-    for (final producto in productosCarrito) {
-      final cantidad = carrito[producto.id] ?? 0;
-      final subtotal = producto.precio * cantidad;
-      ticket.writeln(
-        '${producto.nombre} x$cantidad  ·  ${producto.precio.toStringAsFixed(2)} €  =  ${subtotal.toStringAsFixed(2)} €',
-      );
-    }
-
-    ticket.writeln('');
-    ticket.writeln('TOTAL: ${total.toStringAsFixed(2)} €');
-    ticket.writeln('***************************');
-
-    debugPrint(ticket.toString());
-    onClear();
-
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -72,24 +48,6 @@ class CarritoPage extends StatelessWidget {
           ),
         ),
       );
-
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Ticket generado'),
-          content: SingleChildScrollView(
-            child: Text(ticket.toString()),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cerrar'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -170,3 +128,18 @@ class CarritoPage extends StatelessWidget {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

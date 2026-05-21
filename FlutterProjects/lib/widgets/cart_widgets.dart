@@ -58,6 +58,16 @@ class CartItemTile extends StatelessWidget {
                 Text(producto.nombre, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900)),
                 const SizedBox(height: 3),
                 Text('${producto.precioTexto} / ud.', style: const TextStyle(color: AppTheme.gray, fontSize: 12)),
+                if (producto.tieneAlertaAlergenos) ...[
+                  const SizedBox(height: 5),
+                  AllergenWarningBanner(
+                    text: 'Contiene ${producto.alertaAlergenosTexto}',
+                    compact: true,
+                  ),
+                ] else if (producto.tieneAlergenos) ...[
+                  const SizedBox(height: 5),
+                  AllergenTextLine(text: 'Alérgenos: ${producto.alergenosTexto}'),
+                ],
               ],
             ),
           ),

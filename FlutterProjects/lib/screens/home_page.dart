@@ -29,14 +29,12 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final flash = productos.where((producto) => producto.esFlash).toList();
-    final categorias = productos.map((producto) => producto.categoria).toSet().toList();
-    final categoriaRecomendada = categorias.isNotEmpty
-        ? (List<String>.from(categorias)..shuffle()).first
-        : '';
-    final recomendados = productos
-        .where((producto) => producto.categoria == categoriaRecomendada)
+    final novedades = productos.where((producto) => producto.esNovedad).toList();
+    final bajadas = productos.where((producto) => producto.esBajadaPrecio).toList();
+    final solares = productos
+        .where((producto) => producto.categoria == 'Cuidado facial y corporal')
         .toList();
+    final flash = productos.where((producto) => producto.esFlash).toList();
 
     return Column(
       children: [
@@ -56,25 +54,38 @@ class HomePage extends StatelessWidget {
 
               const SizedBox(height: 18),
               const SectionTitle(
-                title: 'Ofertas Flash',
-                subtitle: 'Productos próximos a caducar',
+                title: 'Bajadas de precio',
+                subtitle: 'Ahorra en productos seleccionados',
               ),
               ProductHorizontalList(
-                productos: flash,
+                productos: bajadas,
+                carrito: carrito,
+                onAdd: onAdd,
+                onRemove: onRemove,
+              ),
+
+              const SizedBox(height: 16),
+              FlashEntryCard(productos: flash, onTap: onOpenFlash),
+
+              const SizedBox(height: 18),
+              const SectionTitle(
+                title: 'Novedades',
+                subtitle: 'Productos recién añadidos o mejorados',
+              ),
+              ProductHorizontalList(
+                productos: novedades,
                 carrito: carrito,
                 onAdd: onAdd,
                 onRemove: onRemove,
               ),
 
               const SizedBox(height: 18),
-              SectionTitle(
-                title: 'Recomendados',
-                subtitle: categoriaRecomendada.isNotEmpty
-                    ? 'Productos de la categoría $categoriaRecomendada'
-                    : null,
+              const SectionTitle(
+                title: 'El bronceado perfecto',
+                subtitle: 'Cuidado facial y corporal para el verano',
               ),
               ProductHorizontalList(
-                productos: recomendados,
+                productos: solares,
                 carrito: carrito,
                 onAdd: onAdd,
                 onRemove: onRemove,

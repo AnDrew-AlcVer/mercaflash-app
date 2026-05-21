@@ -12,16 +12,20 @@ import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/cart_widgets.dart';
 
-enum SpecialPage { category, recipe }
-
 class MainScreen extends StatefulWidget {
   final bool sesionInicialIniciada;
   final String nombreUsuarioInicial;
+  final String emailUsuarioInicial;
+  final List<Alergeno> alergenosUsuarioIniciales;
+  final int selectedIndexInicial;
 
   const MainScreen({
     super.key,
     this.sesionInicialIniciada = false,
-    this.nombreUsuarioInicial = 'Jordi',
+    this.nombreUsuarioInicial = 'Invitado',
+    this.emailUsuarioInicial = '',
+    this.alergenosUsuarioIniciales = const [],
+    this.selectedIndexInicial = 0,
   });
 
   @override
@@ -33,9 +37,11 @@ class _MainScreenState extends State<MainScreen> {
 
   int _selectedIndex = 0;
   bool _cargando = true;
+  bool _avisoAlergenosMostrado = false;
 
   late bool _sesionIniciada;
   late String _nombreUsuario;
+  late String _emailUsuario;
 
   SpecialPage? _specialPage;
   String? _categoriaSeleccionada;
@@ -45,6 +51,8 @@ class _MainScreenState extends State<MainScreen> {
   List<Producto> _productosFlash = [];
   List<Receta> _recetas = [];
   List<CategoriaMercadona> _categorias = [];
+  List<Alergeno> _alergenosDisponibles = alergenosComunes;
+  List<Alergeno> _alergenosUsuario = const [];
 
   final Map<String, int> _carrito = {};
 
@@ -52,28 +60,47 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
 
+    _selectedIndex = widget.selectedIndexInicial;
     _sesionIniciada = widget.sesionInicialIniciada;
     _nombreUsuario = widget.nombreUsuarioInicial;
+    _emailUsuario = widget.emailUsuarioInicial;
+    _alergenosUsuario = widget.alergenosUsuarioIniciales;
 
     _cargarDatos();
   }
 
   Future<void> _cargarDatos() async {
     try {
+      final usuario = await _service.obtenerUsuarioActual();
+      final alergenosDisponibles = await _service.obtenerAlergenosDisponibles();
       final productos = await _service.obtenerProductos();
-      final productosFlash = await _service.obtenerProductosProximosACaducar();
+      final productosFlash = productos.where((producto) => producto.esFlash).toList();
       final recetas = await _service.obtenerRecetasSugeridas();
       final categorias = await _service.obtenerCategorias();
 
       if (!mounted) return;
 
       setState(() {
+        if (usuario != null) {
+          _sesionIniciada = true;
+          _nombreUsuario = usuario.nombre;
+          _emailUsuario = usuario.email;
+          _alergenosUsuario = usuario.alergenos;
+        } else if (!_sesionIniciada) {
+          _nombreUsuario = 'Invitado';
+          _emailUsuario = '';
+          _alergenosUsuario = const [];
+        }
+
+        _alergenosDisponibles = alergenosDisponibles;
         _productos = productos;
         _productosFlash = productosFlash;
         _recetas = recetas;
         _categorias = categorias;
         _cargando = false;
       });
+
+      _pedirAlergenosSiHaceFalta();
     } catch (e, stacktrace) {
       debugPrint('Error cargando datos: $e');
       debugPrintStack(stackTrace: stacktrace);
@@ -121,18 +148,7 @@ class _MainScreenState extends State<MainScreen> {
 
   void _irACarrito() => _cambiarPantalla(3);
 
-  void _abrirCategoria(String categoria) {
-    if (categoria == 'Próximos a caducar') {
-      _irAFlash();
-      return;
-    }
-
-    setState(() {
-      _specialPage = SpecialPage.category;
-      _categoriaSeleccionada = categoria;
-      _recetaSeleccionada = null;
-    });
-  }
+  void _irACuenta() => _cambiarPantalla(4);
 
   void _abrirReceta(Receta receta) {
     setState(() {
@@ -157,7 +173,16 @@ class _MainScreenState extends State<MainScreen> {
         ifAbsent: () => 1,
       );
     });
-    _mostrarSnack('${producto.nombre} añadido al carrito');
+
+    if (producto.tieneAlertaAlergenos) {
+      _mostrarSnack(
+        'Aviso: ${producto.nombre} contiene ${producto.alertaAlergenosTexto}. Lo hemos añadido igualmente.',
+        backgroundColor: AppTheme.orange,
+        duracion: const Duration(milliseconds: 2200),
+      );
+    } else {
+      _mostrarSnack('${producto.nombre} añadido al carrito');
+    }
   }
 
   void _sumarProductos(List<Producto> productos) {
@@ -176,7 +201,16 @@ class _MainScreenState extends State<MainScreen> {
       }
     });
 
-    _mostrarSnack('${productos.length} productos añadidos al carrito');
+    final productosConAviso = productos.where((p) => p.tieneAlertaAlergenos).toList();
+    if (productosConAviso.isNotEmpty) {
+      _mostrarSnack(
+        'Añadidos. Revisa avisos de alérgenos en ${productosConAviso.length} producto(s).',
+        backgroundColor: AppTheme.orange,
+        duracion: const Duration(milliseconds: 2200),
+      );
+    } else {
+      _mostrarSnack('${productos.length} productos añadidos al carrito');
+    }
   }
 
   void _restarProducto(Producto producto) {
@@ -195,31 +229,140 @@ class _MainScreenState extends State<MainScreen> {
     _mostrarSnack('Carrito vaciado');
   }
 
-  void _iniciarSesion(String nombre) {
-    setState(() {
-      _sesionIniciada = true;
-      _nombreUsuario = nombre.trim().isEmpty ? 'Jordi' : nombre.trim();
-    });
-    _mostrarSnack('Sesión iniciada correctamente');
+  Future<String?> _autenticarUsuario({
+    required String nombre,
+    required String email,
+    required String password,
+    required bool registrar,
+    required List<int> alergenosIds,
+  }) async {
+    try {
+      setState(() => _cargando = true);
+
+      final usuario = registrar
+          ? await _service.registrarUsuario(
+              nombre: nombre,
+              email: email,
+              password: password,
+              alergenosIds: alergenosIds,
+            )
+          : await _service.iniciarSesion(
+              email: email,
+              password: password,
+            );
+
+      if (!mounted) return null;
+
+      setState(() {
+        _sesionIniciada = true;
+        _nombreUsuario = usuario.nombre;
+        _emailUsuario = usuario.email;
+        _alergenosUsuario = usuario.alergenos;
+        _selectedIndex = 4;
+        _cargando = false;
+      });
+
+      await _cargarDatos();
+
+      _mostrarSnack(
+        registrar ? 'Cuenta creada correctamente' : 'Sesión iniciada correctamente',
+      );
+      _pedirAlergenosSiHaceFalta();
+      return null;
+    } catch (e) {
+      if (mounted) setState(() => _cargando = false);
+      return _service.mensajeErrorAuth(e);
+    }
   }
 
-  void _cerrarSesion() {
+  Future<String?> _guardarAlergenos(List<int> alergenosIds) async {
+    try {
+      await _service.guardarAlergenosUsuario(alergenosIds);
+      final usuario = await _service.obtenerUsuarioActual();
+
+      if (!mounted) return null;
+
+      setState(() {
+        _alergenosUsuario = usuario?.alergenos ?? const [];
+        _avisoAlergenosMostrado = _alergenosUsuario.isNotEmpty;
+      });
+
+      await _cargarDatos();
+      _mostrarSnack('Alérgenos guardados correctamente');
+      return null;
+    } catch (e) {
+      return _service.mensajeErrorAuth(e);
+    }
+  }
+
+  Future<void> _cerrarSesion() async {
+    try {
+      await _service.cerrarSesion();
+    } catch (_) {
+      // Aunque falle el cierre remoto, dejamos la interfaz como invitado.
+    }
+
+    if (!mounted) return;
+
     setState(() {
       _sesionIniciada = false;
       _nombreUsuario = 'Invitado';
+      _emailUsuario = '';
+      _alergenosUsuario = const [];
+      _avisoAlergenosMostrado = false;
+      _selectedIndex = 0;
     });
+
+    await _cargarDatos();
     _mostrarSnack('Sesión cerrada');
   }
 
-  void _mostrarSnack(String texto) {
+  void _pedirAlergenosSiHaceFalta() {
+    if (!_sesionIniciada || _alergenosUsuario.isNotEmpty || _avisoAlergenosMostrado) return;
+
+    _avisoAlergenosMostrado = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Configura tus alérgenos'),
+            content: const Text(
+              'Para avisarte en productos y recetas, indica tus alérgenos desde Mi cuenta. No bloquearemos productos: solo te avisaremos antes de comprarlos.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Ahora no'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _irACuenta();
+                },
+                child: const Text('Configurar'),
+              ),
+            ],
+          );
+        },
+      );
+    });
+  }
+
+  void _mostrarSnack(
+    String texto, {
+    Color backgroundColor = AppTheme.green,
+    Duration duracion = const Duration(milliseconds: 1400),
+  }) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(texto),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: AppTheme.green,
-          duration: const Duration(milliseconds: 1200),
+          backgroundColor: backgroundColor,
+          duration: duracion,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -260,8 +403,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           NavigationDestination(
             icon: CartNavIcon(count: _totalUnidadesCarrito, selected: false),
-            selectedIcon:
-                CartNavIcon(count: _totalUnidadesCarrito, selected: true),
+            selectedIcon: CartNavIcon(count: _totalUnidadesCarrito, selected: true),
             label: 'Lista',
           ),
           const NavigationDestination(
@@ -285,8 +427,7 @@ class _MainScreenState extends State<MainScreen> {
       );
     }
 
-    if (_specialPage == SpecialPage.category &&
-        _categoriaSeleccionada != null) {
+    if (_specialPage == SpecialPage.category && _categoriaSeleccionada != null) {
       return ProductosCategoriaPage(
         categoria: _categoriaSeleccionada!,
         productos: _productos
@@ -338,13 +479,17 @@ class _MainScreenState extends State<MainScreen> {
           onContinueShopping: _irAHome,
           onRequireLogin: () {
             _mostrarSnack('Para tramitar el pedido necesitas iniciar sesión');
-            _cambiarPantalla(4);
+            _irACuenta();
           },
         ),
         CuentaPage(
           sesionIniciada: _sesionIniciada,
           nombreUsuario: _nombreUsuario,
-          onLogin: _iniciarSesion,
+          emailUsuario: _emailUsuario,
+          alergenosDisponibles: _alergenosDisponibles,
+          alergenosUsuario: _alergenosUsuario,
+          onAuth: _autenticarUsuario,
+          onSaveAlergenos: _guardarAlergenos,
           onLogout: _cerrarSesion,
         ),
       ],
@@ -352,16 +497,4 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+enum SpecialPage { category, recipe }
