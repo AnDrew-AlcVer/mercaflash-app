@@ -54,6 +54,7 @@ class Producto {
   final String nombre;
   final String cantidad;
   final String categoria;
+  final String categoriaId;
   final String subcategoria;
   final double precio;
   final double? precioAnterior;
@@ -72,6 +73,7 @@ class Producto {
     required this.nombre,
     required this.cantidad,
     required this.categoria,
+    required this.categoriaId,
     this.subcategoria = '',
     required this.precio,
     this.precioAnterior,
@@ -108,15 +110,23 @@ class Producto {
         precioOfertaRaw < precioOriginal;
     final precioOferta = precioOfertaRaw ?? precioOriginal;
 
-    final cat = data['categoria']?.toString() ?? 'Despensa';
+    final catId = data['categoria_id']?.toString() ?? '';
+    
+    String catNombre = data['categoria']?.toString() ?? 'Despensa';
+    if (data['categorias'] != null && data['categorias'] is Map) {
+       catNombre = data['categorias']['nombre']?.toString() ?? catNombre;
+    }
+
     final emojiIcon = data['emoji']?.toString() ?? '🛒';
     final coincidencias = _coincidenciasAlergenos(alergenos, alergenosUsuario);
+  
 
     return Producto(
       id: data['id'].toString(),
       nombre: data['nombre']?.toString() ?? '',
       cantidad: data['cantidad']?.toString() ?? '1 ud.',
-      categoria: cat,
+      categoria: catNombre,     
+      categoriaId: catId,       
       subcategoria: data['subcategoria']?.toString() ?? '',
       precio: estaDeOferta ? precioOferta : precioOriginal,
       precioAnterior: estaDeOferta ? precioOriginal : null,

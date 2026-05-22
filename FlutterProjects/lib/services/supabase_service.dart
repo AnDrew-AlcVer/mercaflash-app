@@ -306,7 +306,7 @@ class SupabaseService {
     try {
       final response = await _client
           .from('productos')
-          .select('*, productos_alergias(alergia_id, alergias(id, nombre))');
+          .select('*, categorias(nombre), productos_alergias(alergia_id, alergias(id, nombre))');
 
       return (response as List).map((raw) {
         final row = Map<String, dynamic>.from(raw as Map);
@@ -318,7 +318,7 @@ class SupabaseService {
         );
       }).toList();
     } catch (_) {
-      final response = await _client.from('productos').select('*, productos_alergias(alergia_id)');
+      final response = await _client.from('productos').select('*, categorias(nombre), productos_alergias(alergia_id)');
 
       return (response as List).map((raw) {
         final row = Map<String, dynamic>.from(raw as Map);

@@ -31,22 +31,14 @@ class _CategoriasPageState extends State<CategoriasPage> {
 
   // Función que filtra y navega a la nueva pantalla
   void _abrirCategoria(CategoriaMercadona categoria) {
-    // 1. Filtrar los productos por la categoría seleccionada (ignorando mayúsculas y espacios)
+    // 1. Filtrar los productos comparando el ID de la categoría (Mucho más seguro)
     final productosFiltrados = widget.productos.where((p) {
-      final catProducto = p.categoria.trim().toLowerCase();
-      final catNombre = categoria.nombre.trim().toLowerCase();
-      
-      return catProducto == catNombre;
+      return p.categoriaId == categoria.id;
     }).toList();
 
-    // Prints para ayudarte a depurar en caso de que siga vacío
     debugPrint('--- DEBUG CATEGORÍAS ---');
-    debugPrint('Categoría clickeada: ${categoria.nombre}');
+    debugPrint('Categoría clickeada: ${categoria.nombre} (ID: ${categoria.id})');
     debugPrint('Productos que coinciden: ${productosFiltrados.length}');
-    if (widget.productos.isNotEmpty && productosFiltrados.isEmpty) {
-      debugPrint('Ojo, no hay coincidencias. Un producto cualquiera tiene la categoría: "${widget.productos.first.categoria}"');
-      debugPrint('Asegúrate de que en Supabase la columna coincide con el "nombre" de la categoría y no con el "id".');
-    }
 
     // 2. Navegar a la pantalla de la categoría
     Navigator.push(
