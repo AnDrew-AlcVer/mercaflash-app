@@ -67,6 +67,7 @@ class Producto {
   final String descripcion;
   final List<Alergeno> alergenos;
   final List<Alergeno> alergenosCoincidentes;
+  final bool mostrarOferta; // NUEVA COLUMNA
 
   const Producto({
     required this.id,
@@ -86,6 +87,7 @@ class Producto {
     this.descripcion = '',
     this.alergenos = const [],
     this.alergenosCoincidentes = const [],
+    this.mostrarOferta = false, // VALOR POR DEFECTO
   });
 
   factory Producto.fromMap(
@@ -119,7 +121,6 @@ class Producto {
 
     final emojiIcon = data['emoji']?.toString() ?? '🛒';
     final coincidencias = _coincidenciasAlergenos(alergenos, alergenosUsuario);
-  
 
     return Producto(
       id: data['id'].toString(),
@@ -139,6 +140,7 @@ class Producto {
       descripcion: data['descripcion']?.toString() ?? '',
       alergenos: _sinDuplicadosAlergenos(alergenos),
       alergenosCoincidentes: coincidencias,
+      mostrarOferta: data['mostrar_oferta'] == true, // SE LEE DESDE SUPABASE
     );
   }
 

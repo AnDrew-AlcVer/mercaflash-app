@@ -38,6 +38,8 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   bool _cargando = true;
   bool _avisoAlergenosMostrado = false;
+  
+  bool _debeHacerScrollARecetas = false;
 
   late bool _sesionIniciada;
   late String _nombreUsuario;
@@ -137,6 +139,11 @@ class _MainScreenState extends State<MainScreen> {
       _specialPage = null;
       _categoriaSeleccionada = null;
       _recetaSeleccionada = null;
+      
+      // Reseteamos el scroll si no estamos activándolo a propósito
+      if (index != 2) {
+         _debeHacerScrollARecetas = false;
+      }
     });
   }
 
@@ -144,7 +151,19 @@ class _MainScreenState extends State<MainScreen> {
 
   void _irACategorias() => _cambiarPantalla(1);
 
-  void _irAFlash() => _cambiarPantalla(2);
+  void _irAFlash() {
+    setState(() {
+      _debeHacerScrollARecetas = false; 
+    });
+    _cambiarPantalla(2);
+  }
+
+  void _irAFlashYScrollRecetas() {
+    setState(() {
+      _debeHacerScrollARecetas = true;
+    });
+    _cambiarPantalla(2);
+  }
 
   void _irACarrito() => _cambiarPantalla(3);
 
@@ -154,6 +173,14 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       _specialPage = SpecialPage.recipe;
       _recetaSeleccionada = receta;
+    });
+  }
+  
+  // NUEVA FUNCIÓN: Abrir una categoría específica por su nombre desde cualquier sitio
+  void _abrirCategoriaEspecifica(String nombreCategoria) {
+    setState(() {
+      _specialPage = SpecialPage.category;
+      _categoriaSeleccionada = nombreCategoria;
     });
   }
 
@@ -298,9 +325,7 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _cerrarSesion() async {
     try {
       await _service.cerrarSesion();
-    } catch (_) {
-      // Aunque falle el cierre remoto, dejamos la interfaz como invitado.
-    }
+    } catch (_) {}
 
     if (!mounted) return;
 
@@ -450,8 +475,11 @@ class _MainScreenState extends State<MainScreen> {
           onAdd: _sumarProducto,
           onRemove: _restarProducto,
           onOpenFlash: _irAFlash,
+          onOpenFlashRecipes: _irAFlashYScrollRecetas, 
           onOpenCart: _irACarrito,
           onOpenCategories: _irACategorias,
+          // AQUÍ PASAMOS LA NUEVA FUNCIÓN PARA ABRIR LA CATEGORÍA
+          onOpenCategory: _abrirCategoriaEspecifica,
         ),
         CategoriasPage(
           categorias: _categorias,
@@ -461,12 +489,13 @@ class _MainScreenState extends State<MainScreen> {
           onRemove: _restarProducto,
         ),
         FlashPage(
-          productos: _productosFlash,
+          productos: _productos,
           recetas: _recetas,
           carrito: _carrito,
           onAdd: _sumarProducto,
           onRemove: _restarProducto,
           onOpenRecipe: _abrirReceta,
+          scrollToRecipes: _debeHacerScrollARecetas,
         ),
         CarritoPage(
           productos: _productos,

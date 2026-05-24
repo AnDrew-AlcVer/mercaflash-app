@@ -145,13 +145,15 @@ class _CategoryList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // AQUÍ FILTRAMOS LA CATEGORÍA PARA QUE NO APAREZCA
+    final categoriasVisibles = categorias.where((c) => c.id != 'flash').toList();
+
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
-      itemCount: categorias.length,
+      itemCount: categoriasVisibles.length,
       separatorBuilder: (_, __) => const Divider(height: 1, color: AppTheme.border),
       itemBuilder: (context, index) {
-        final categoria = categorias[index];
-        final esFlash = categoria.id == 'flash';
+        final categoria = categoriasVisibles[index];
 
         return AnimatedTap(
           onTap: () => onOpenCategory(categoria),
@@ -177,10 +179,10 @@ class _CategoryList extends StatelessWidget {
                 Expanded(
                   child: Text(
                     categoria.nombre,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
-                      fontWeight: esFlash ? FontWeight.w900 : FontWeight.w600,
-                      color: esFlash ? AppTheme.green : AppTheme.black,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.black,
                     ),
                   ),
                 ),
