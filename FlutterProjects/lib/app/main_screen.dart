@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // IMPORTANTE AÑADIR ESTO
 
 import '../models/producto_model.dart';
 import '../screens/carrito_page.dart';
@@ -44,6 +45,9 @@ class _MainScreenState extends State<MainScreen> {
   late bool _sesionIniciada;
   late String _nombreUsuario;
   late String _emailUsuario;
+  
+  // Variable para almacenar el Código Postal local del móvil
+  String _codigoPostalApp = ''; 
 
   SpecialPage? _specialPage;
   String? _categoriaSeleccionada;
@@ -73,6 +77,10 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _cargarDatos() async {
     try {
+      // 1. Cargamos el Código Postal almacenado localmente en el móvil
+      final prefs = await SharedPreferences.getInstance();
+      _codigoPostalApp = prefs.getString('codigo_postal') ?? '00000'; // Pon el valor por defecto que prefieras si está vacío
+
       final usuario = await _service.obtenerUsuarioActual();
       final alergenosDisponibles = await _service.obtenerAlergenosDisponibles();
       final productos = await _service.obtenerProductos();
@@ -88,6 +96,7 @@ class _MainScreenState extends State<MainScreen> {
           _nombreUsuario = usuario.nombre;
           _emailUsuario = usuario.email;
           _alergenosUsuario = usuario.alergenos;
+          // Si lo necesitas en el futuro, el código postal de la base de datos está en: usuario.codigoPostal
         } else if (!_sesionIniciada) {
           _nombreUsuario = 'Invitado';
           _emailUsuario = '';
@@ -140,7 +149,6 @@ class _MainScreenState extends State<MainScreen> {
       _categoriaSeleccionada = null;
       _recetaSeleccionada = null;
       
-      // Reseteamos el scroll si no estamos activándolo a propósito
       if (index != 2) {
          _debeHacerScrollARecetas = false;
       }
@@ -148,25 +156,16 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _irAHome() => _cambiarPantalla(0);
-
   void _irACategorias() => _cambiarPantalla(1);
-
   void _irAFlash() {
-    setState(() {
-      _debeHacerScrollARecetas = false; 
-    });
+    setState(() => _debeHacerScrollARecetas = false);
     _cambiarPantalla(2);
   }
-
   void _irAFlashYScrollRecetas() {
-    setState(() {
-      _debeHacerScrollARecetas = true;
-    });
+    setState(() => _debeHacerScrollARecetas = true);
     _cambiarPantalla(2);
   }
-
   void _irACarrito() => _cambiarPantalla(3);
-
   void _irACuenta() => _cambiarPantalla(4);
 
   void _abrirReceta(Receta receta) {
@@ -176,7 +175,6 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
   
-  // NUEVA FUNCIÓN: Abrir una categoría específica por su nombre desde cualquier sitio
   void _abrirCategoriaEspecifica(String nombreCategoria) {
     setState(() {
       _specialPage = SpecialPage.category;
@@ -264,13 +262,12 @@ class _MainScreenState extends State<MainScreen> {
     required List<int> alergenosIds,
   }) async {
     try {
-      setState(() => _cargando = true);
-
       final usuario = registrar
           ? await _service.registrarUsuario(
               nombre: nombre,
               email: email,
               password: password,
+              codigoPostal: _codigoPostalApp, // ENVIAMOS EL CÓDIGO POSTAL DE LA APP A LA BD
               alergenosIds: alergenosIds,
             )
           : await _service.iniciarSesion(
@@ -285,8 +282,8 @@ class _MainScreenState extends State<MainScreen> {
         _nombreUsuario = usuario.nombre;
         _emailUsuario = usuario.email;
         _alergenosUsuario = usuario.alergenos;
-        _selectedIndex = 4;
-        _cargando = false;
+        
+        _selectedIndex = 0; 
       });
 
       await _cargarDatos();
@@ -297,7 +294,6 @@ class _MainScreenState extends State<MainScreen> {
       _pedirAlergenosSiHaceFalta();
       return null;
     } catch (e) {
-      if (mounted) setState(() => _cargando = false);
       return _service.mensajeErrorAuth(e);
     }
   }
@@ -478,7 +474,6 @@ class _MainScreenState extends State<MainScreen> {
           onOpenFlashRecipes: _irAFlashYScrollRecetas, 
           onOpenCart: _irACarrito,
           onOpenCategories: _irACategorias,
-          // AQUÍ PASAMOS LA NUEVA FUNCIÓN PARA ABRIR LA CATEGORÍA
           onOpenCategory: _abrirCategoriaEspecifica,
         ),
         CategoriasPage(

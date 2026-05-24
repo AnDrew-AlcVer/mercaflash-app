@@ -6,12 +6,14 @@ class UsuarioSesion {
   final String id;
   final String nombre;
   final String email;
+  final String codigoPostal; // NUEVO
   final List<Alergeno> alergenos;
 
   const UsuarioSesion({
     required this.id,
     required this.nombre,
     required this.email,
+    this.codigoPostal = '', // NUEVO
     this.alergenos = const [],
   });
 }
@@ -35,21 +37,21 @@ class SupabaseService {
 
     String nombre = '';
     String email = user.email ?? '';
+    String codigoPostal = ''; // Inicializamos vacío
 
     try {
       final perfil = await _client
           .from('usuarios')
-          .select('nombre, email')
+          .select('nombre, correo, codigo_postal') // CAMBIO: Extraemos el CP
           .eq('id', user.id)
           .maybeSingle();
 
       if (perfil != null) {
         nombre = perfil['nombre']?.toString().trim() ?? '';
-        email = perfil['email']?.toString().trim() ?? email;
+        email = perfil['correo']?.toString().trim() ?? email; 
+        codigoPostal = perfil['codigo_postal']?.toString().trim() ?? ''; // Guardamos el CP extraído
       }
-    } catch (_) {
-      // La tabla de perfil es opcional. Auth sigue funcionando aunque no exista.
-    }
+    } catch (_) {}
 
     if (nombre.isEmpty && nombreMetadata != null && nombreMetadata.isNotEmpty) {
       nombre = nombreMetadata;
@@ -70,6 +72,7 @@ class SupabaseService {
       id: user.id,
       nombre: nombre,
       email: email,
+      codigoPostal: codigoPostal, // Se lo asignamos al usuario
       alergenos: alergenos,
     );
   }
@@ -100,6 +103,7 @@ class SupabaseService {
     required String nombre,
     required String email,
     required String password,
+    required String codigoPostal, // NUEVO PARÁMETRO
     List<int> alergenosIds = const [],
   }) async {
     final nombreLimpio = nombre.trim();
@@ -120,6 +124,7 @@ class SupabaseService {
       id: user.id,
       nombre: nombreLimpio,
       email: emailLimpio,
+      codigoPostal: codigoPostal, // Se lo pasamos a la DB
     );
 
     await guardarAlergenosUsuario(alergenosIds, usuarioIdForzado: user.id);
@@ -136,6 +141,7 @@ class SupabaseService {
       id: user.id,
       nombre: nombreLimpio.isEmpty ? emailLimpio.split('@').first : nombreLimpio,
       email: emailLimpio,
+      codigoPostal: codigoPostal,
       alergenos: seleccionados,
     );
   }
@@ -152,24 +158,33 @@ class SupabaseService {
     required String id,
     required String nombre,
     required String email,
+    required String codigoPostal, // NUEVO
   }) async {
     try {
       await _client.from('usuarios').upsert(
         {
           'id': id,
           'nombre': nombre,
-          'email': email,
+          'apellidos': '', 
+          'correo': email, 
+          'telefono': '',  
+          'codigo_postal': codigoPostal, // CAMBIO: Inserción real en BD
         },
         onConflict: 'id',
       );
-    } catch (_) {
-      // No bloqueamos registro/login si la tabla usuarios no está exactamente igual.
+    } catch (e) {
+      print('🔥🔥🔥 ERROR AL GUARDAR USUARIO EN BD: $e');
+      throw AuthException('Error al guardar datos del usuario: $e');
     }
   }
 
   String mensajeErrorAuth(Object error) {
     if (error is AuthException) {
       final message = error.message.toLowerCase();
+
+      if (message.contains('rate limit') || message.contains('too many requests')) {
+        return 'Demasiados intentos. Por seguridad, espera un rato antes de volver a probar.';
+      }
 
       if (message.contains('invalid login credentials')) {
         return 'Correo o contraseña incorrectos.';
@@ -189,7 +204,7 @@ class SupabaseService {
         return 'La contraseña debe tener al menos 6 caracteres.';
       }
 
-      if (message.contains('email')) {
+      if (message.contains('invalid email')) {
         return 'Revisa que el correo esté bien escrito.';
       }
 
@@ -217,9 +232,7 @@ class SupabaseService {
           .toList();
 
       if (lista.isNotEmpty) return _sinDuplicados(lista);
-    } catch (_) {
-      // Si la tabla no existe o no hay permisos, usamos una lista segura por defecto.
-    }
+    } catch (_) {}
 
     return alergenosComunes;
   }
@@ -284,20 +297,25 @@ class SupabaseService {
 
     final idsLimpios = alergenosIds.where((id) => id > 0).toSet().toList();
 
-    await _client.from('usuarios_alergias').delete().eq('usuario_id', usuarioId);
+    try {
+      await _client.from('usuarios_alergias').delete().eq('usuario_id', usuarioId);
 
-    if (idsLimpios.isEmpty) return;
+      if (idsLimpios.isEmpty) return;
 
-    await _client.from('usuarios_alergias').insert(
-          idsLimpios
-              .map(
-                (id) => {
-                  'usuario_id': usuarioId,
-                  'alergia_id': id,
-                },
-              )
-              .toList(),
-        );
+      await _client.from('usuarios_alergias').insert(
+            idsLimpios
+                .map(
+                  (id) => {
+                    'usuario_id': usuarioId,
+                    'alergia_id': id,
+                  },
+                )
+                .toList(),
+          );
+    } catch (e) {
+      print('🔥🔥🔥 ERROR AL GUARDAR ALERGIAS EN BD: $e');
+      throw AuthException('Error al guardar alérgenos: $e');
+    }
   }
 
   Future<List<Producto>> obtenerProductos() async {

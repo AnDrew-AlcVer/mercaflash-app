@@ -47,6 +47,7 @@ class _CuentaPageState extends State<CuentaPage> {
 
   bool _registro = false;
   bool _cargando = false;
+  bool _alergenosExpandidos = false;
   late Set<int> _alergenosSeleccionados;
 
   @override
@@ -72,6 +73,12 @@ class _CuentaPageState extends State<CuentaPage> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  String _capitalizar(String texto) {
+    if (texto.trim().isEmpty) return '';
+    final limpio = texto.trim();
+    return limpio[0].toUpperCase() + limpio.substring(1).toLowerCase();
   }
 
   bool _emailValido(String email) {
@@ -119,7 +126,18 @@ class _CuentaPageState extends State<CuentaPage> {
     setState(() => _cargando = false);
 
     if (error != null) {
-      _mostrarMensaje(error);
+      final mensajeMinusculas = error.toLowerCase();
+      if (!_registro) {
+        if (mensajeMinusculas.contains('user not found') || mensajeMinusculas.contains('no existe')) {
+          _mostrarMensaje('No tienes cuenta, prueba a crear una ahora.');
+        } else if (mensajeMinusculas.contains('incorrectos') || mensajeMinusculas.contains('invalid login credentials')) {
+          _mostrarMensaje('La contraseña y el usuario no son correctos.');
+        } else {
+          _mostrarMensaje(error);
+        }
+      } else {
+        _mostrarMensaje(error);
+      }
       return;
     }
 
@@ -141,6 +159,8 @@ class _CuentaPageState extends State<CuentaPage> {
 
     if (error != null) {
       _mostrarMensaje(error);
+    } else {
+      setState(() => _alergenosExpandidos = false);
     }
   }
 
@@ -159,93 +179,180 @@ class _CuentaPageState extends State<CuentaPage> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(texto),
+          content: Text(
+            texto,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            textAlign: TextAlign.center,
+          ),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppTheme.red,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 3),
         ),
       );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.sesionIniciada) {
-      return _buildCuentaIniciada();
-    }
-
-    return _buildLoginRegistro();
+    return Column(
+      children: [
+        const SimpleHeader(title: 'Cuenta'),
+        Expanded(
+          child: widget.sesionIniciada
+              ? _buildCuentaIniciada()
+              : _buildLoginRegistro(),
+        ),
+      ],
+    );
   }
 
   Widget _buildCuentaIniciada() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+      children: [
+        Text(
+          'Hola, ${_capitalizar(widget.nombreUsuario)}',
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            color: AppTheme.black,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          widget.emailUsuario,
+          style: const TextStyle(
+            fontSize: 16,
+            color: AppTheme.gray,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 32),
+
+        // Acordeón de Alérgenos (ahora idéntico visualmente a un AccountRow)
+        _buildAlergenosExpandible(),
+
+        const AccountRow(icon: Icons.receipt_long_outlined, title: 'Mis pedidos'),
+        const AccountRow(icon: Icons.person_outline_rounded, title: 'Datos personales'),
+        const AccountRow(icon: Icons.location_on_outlined, title: 'Direcciones'),
+        const AccountRow(icon: Icons.credit_card_rounded, title: 'Métodos de pago'),
+        const AccountRow(icon: Icons.help_outline_rounded, title: 'Ayuda'),
+        const AccountRow(icon: Icons.privacy_tip_outlined, title: 'Privacidad y datos'),
+        
+        const SizedBox(height: 24),
+        
+        AnimatedTap(
+          onTap: widget.onLogout,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+            decoration: BoxDecoration(
+              color: AppTheme.red.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.logout_rounded, color: AppTheme.red),
+                SizedBox(width: 10),
+                Text(
+                  'Cerrar sesión',
+                  style: TextStyle(
+                    color: AppTheme.red,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Ahora se ve exactamente como una opción más de la lista
+  Widget _buildAlergenosExpandible() {
     return Column(
       children: [
-        SimpleHeader(title: 'Hola, ${widget.nombreUsuario}'),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.greenLight,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.verified_user_outlined, color: AppTheme.green),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        widget.emailUsuario.isEmpty
-                            ? 'Sesión iniciada correctamente.'
-                            : 'Sesión iniciada con ${widget.emailUsuario}.',
-                        style: const TextStyle(
-                          color: AppTheme.green,
-                          fontWeight: FontWeight.w800,
-                          height: 1.35,
-                        ),
-                      ),
+        InkWell(
+          onTap: () {
+            setState(() {
+              _alergenosExpandidos = !_alergenosExpandidos;
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Row(
+              children: [
+                const Icon(Icons.health_and_safety_outlined, color: AppTheme.black),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Text(
+                    'Mis alérgenos',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.black,
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 18),
-              _AllergenAccountCard(
-                alergenosDisponibles: widget.alergenosDisponibles,
-                selectedIds: _alergenosSeleccionados,
-                cargando: _cargando,
-                onToggle: _toggleAlergeno,
-                onSave: _guardarAlergenos,
-              ),
-              const SizedBox(height: 20),
-              const AccountRow(icon: Icons.receipt_long_outlined, title: 'Mis pedidos'),
-              const AccountRow(icon: Icons.person_outline_rounded, title: 'Datos personales'),
-              const AccountRow(icon: Icons.location_on_outlined, title: 'Direcciones'),
-              const AccountRow(icon: Icons.credit_card_rounded, title: 'Métodos de pago'),
-              const AccountRow(icon: Icons.help_outline_rounded, title: 'Ayuda'),
-              const AccountRow(icon: Icons.privacy_tip_outlined, title: 'Privacidad y datos'),
-              const SizedBox(height: 12),
-              AnimatedTap(
-                onTap: widget.onLogout,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Row(
+                Icon(
+                  _alergenosExpandidos
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.chevron_right_rounded,
+                  color: AppTheme.gray,
+                ),
+              ],
+            ),
+          ),
+        ),
+        
+        AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          child: _alergenosExpandidos
+              ? Padding(
+                  padding: const EdgeInsets.only(left: 38, bottom: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.logout_rounded, color: AppTheme.red),
-                      SizedBox(width: 14),
                       Text(
-                        'Cerrar sesión',
-                        style: TextStyle(
-                          color: AppTheme.red,
-                          fontWeight: FontWeight.w800,
+                        _alergenosSeleccionados.isEmpty
+                            ? 'No tienes alérgenos guardados. Marca los que necesites para recibir avisos.'
+                            : 'Tienes ${_alergenosSeleccionados.length} alérgeno(s) guardados.',
+                        style: const TextStyle(color: AppTheme.gray, height: 1.35),
+                      ),
+                      const SizedBox(height: 16),
+                      AllergenSelector(
+                        alergenos: widget.alergenosDisponibles,
+                        selectedIds: _alergenosSeleccionados,
+                        onChanged: _toggleAlergeno,
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: _cargando ? null : _guardarAlergenos,
+                          icon: const Icon(Icons.save_outlined),
+                          label: Text(_cargando ? 'Guardando...' : 'Guardar alérgenos'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.green,
+                            side: const BorderSide(color: AppTheme.green),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-            ],
-          ),
+                )
+              : const SizedBox(width: double.infinity),
         ),
       ],
     );
@@ -298,7 +405,7 @@ class _CuentaPageState extends State<CuentaPage> {
             alignment: Alignment.center,
             child: Text(
               _cargando
-                  ? 'Cargando...'
+                  ? 'Procesando...'
                   : _registro
                       ? 'Crear cuenta'
                       : 'Iniciar sesión',
@@ -345,67 +452,6 @@ class _CuentaPageState extends State<CuentaPage> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _AllergenAccountCard extends StatelessWidget {
-  final List<Alergeno> alergenosDisponibles;
-  final Set<int> selectedIds;
-  final bool cargando;
-  final void Function(Alergeno alergeno, bool selected) onToggle;
-  final VoidCallback onSave;
-
-  const _AllergenAccountCard({
-    required this.alergenosDisponibles,
-    required this.selectedIds,
-    required this.cargando,
-    required this.onToggle,
-    required this.onSave,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(color: Color(0x10000000), blurRadius: 12, offset: Offset(0, 5)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Mis alérgenos',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            selectedIds.isEmpty
-                ? 'No tienes alérgenos guardados. Marca los que necesites para recibir avisos en productos y recetas.'
-                : 'Tienes ${selectedIds.length} alérgeno(s) guardados. Puedes cambiarlos cuando quieras.',
-            style: const TextStyle(color: AppTheme.gray, height: 1.35),
-          ),
-          const SizedBox(height: 12),
-          AllergenSelector(
-            alergenos: alergenosDisponibles,
-            selectedIds: selectedIds,
-            onChanged: onToggle,
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: cargando ? null : onSave,
-              icon: const Icon(Icons.save_outlined),
-              label: Text(cargando ? 'Guardando...' : 'Guardar alérgenos'),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
