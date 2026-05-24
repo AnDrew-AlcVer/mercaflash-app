@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // IMPORTANTE AÑADIR ESTO
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/producto_model.dart';
 import '../screens/carrito_page.dart';
@@ -46,8 +46,8 @@ class _MainScreenState extends State<MainScreen> {
   late String _nombreUsuario;
   late String _emailUsuario;
   
-  // Variable para almacenar el Código Postal local del móvil
-  String _codigoPostalApp = ''; 
+  // Variable local que rescatará el código de SharedPreferences
+  String _codigoPostalApp = '00000'; 
 
   SpecialPage? _specialPage;
   String? _categoriaSeleccionada;
@@ -77,9 +77,9 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _cargarDatos() async {
     try {
-      // 1. Cargamos el Código Postal almacenado localmente en el móvil
+      // 1. Cargamos el Código Postal almacenado localmente
       final prefs = await SharedPreferences.getInstance();
-      _codigoPostalApp = prefs.getString('codigo_postal') ?? '00000'; // Pon el valor por defecto que prefieras si está vacío
+      _codigoPostalApp = prefs.getString('mi_codigo_postal_real') ?? '00000'; 
 
       final usuario = await _service.obtenerUsuarioActual();
       final alergenosDisponibles = await _service.obtenerAlergenosDisponibles();
@@ -96,7 +96,6 @@ class _MainScreenState extends State<MainScreen> {
           _nombreUsuario = usuario.nombre;
           _emailUsuario = usuario.email;
           _alergenosUsuario = usuario.alergenos;
-          // Si lo necesitas en el futuro, el código postal de la base de datos está en: usuario.codigoPostal
         } else if (!_sesionIniciada) {
           _nombreUsuario = 'Invitado';
           _emailUsuario = '';
@@ -120,17 +119,15 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  int get _totalUnidadesCarrito {
-    return _carrito.values.fold(0, (total, cantidad) => total + cantidad);
-  }
+  // --- Funciones de navegación y estado ---
+
+  int get _totalUnidadesCarrito => _carrito.values.fold(0, (total, cantidad) => total + cantidad);
 
   double get _totalCarrito {
     double total = 0;
     for (final entry in _carrito.entries) {
       final producto = _productoPorId(entry.key);
-      if (producto != null) {
-        total += producto.precio * entry.value;
-      }
+      if (producto != null) total += producto.precio * entry.value;
     }
     return total;
   }
@@ -148,10 +145,7 @@ class _MainScreenState extends State<MainScreen> {
       _specialPage = null;
       _categoriaSeleccionada = null;
       _recetaSeleccionada = null;
-      
-      if (index != 2) {
-         _debeHacerScrollARecetas = false;
-      }
+      if (index != 2) _debeHacerScrollARecetas = false;
     });
   }
 
@@ -167,92 +161,34 @@ class _MainScreenState extends State<MainScreen> {
   }
   void _irACarrito() => _cambiarPantalla(3);
   void _irACuenta() => _cambiarPantalla(4);
+  void _limpiarScroll() => setState(() => _debeHacerScrollARecetas = false);
 
-  void _abrirReceta(Receta receta) {
-    setState(() {
-      _specialPage = SpecialPage.recipe;
-      _recetaSeleccionada = receta;
-    });
-  }
-  
-  void _abrirCategoriaEspecifica(String nombreCategoria) {
-    setState(() {
-      _specialPage = SpecialPage.category;
-      _categoriaSeleccionada = nombreCategoria;
-    });
-  }
-
-  void _volver() {
-    setState(() {
-      _specialPage = null;
-      _categoriaSeleccionada = null;
-      _recetaSeleccionada = null;
-    });
-  }
+  void _abrirReceta(Receta receta) => setState(() { _specialPage = SpecialPage.recipe; _recetaSeleccionada = receta; });
+  void _abrirCategoriaEspecifica(String nombre) => setState(() { _specialPage = SpecialPage.category; _categoriaSeleccionada = nombre; });
+  void _volver() => setState(() { _specialPage = null; _categoriaSeleccionada = null; _recetaSeleccionada = null; });
 
   void _sumarProducto(Producto producto) {
-    setState(() {
-      _carrito.update(
-        producto.id,
-        (cantidad) => cantidad + 1,
-        ifAbsent: () => 1,
-      );
-    });
-
-    if (producto.tieneAlertaAlergenos) {
-      _mostrarSnack(
-        'Aviso: ${producto.nombre} contiene ${producto.alertaAlergenosTexto}. Lo hemos añadido igualmente.',
-        backgroundColor: AppTheme.orange,
-        duracion: const Duration(milliseconds: 2200),
-      );
-    } else {
-      _mostrarSnack('${producto.nombre} añadido al carrito');
-    }
+    setState(() => _carrito.update(producto.id, (c) => c + 1, ifAbsent: () => 1));
+    _mostrarSnack(producto.tieneAlertaAlergenos ? 'Aviso: ${producto.nombre} contiene ${producto.alertaAlergenosTexto}. Añadido.' : '${producto.nombre} añadido al carrito');
   }
 
   void _sumarProductos(List<Producto> productos) {
-    if (productos.isEmpty) {
-      _mostrarSnack('Selecciona al menos un producto');
-      return;
-    }
-
+    if (productos.isEmpty) return;
     setState(() {
-      for (final producto in productos) {
-        _carrito.update(
-          producto.id,
-          (cantidad) => cantidad + 1,
-          ifAbsent: () => 1,
-        );
-      }
+      for (final p in productos) _carrito.update(p.id, (c) => c + 1, ifAbsent: () => 1);
     });
-
-    final productosConAviso = productos.where((p) => p.tieneAlertaAlergenos).toList();
-    if (productosConAviso.isNotEmpty) {
-      _mostrarSnack(
-        'Añadidos. Revisa avisos de alérgenos en ${productosConAviso.length} producto(s).',
-        backgroundColor: AppTheme.orange,
-        duracion: const Duration(milliseconds: 2200),
-      );
-    } else {
-      _mostrarSnack('${productos.length} productos añadidos al carrito');
-    }
+    _mostrarSnack('${productos.length} productos añadidos');
   }
 
   void _restarProducto(Producto producto) {
     setState(() {
       final cantidadActual = _carrito[producto.id] ?? 0;
-      if (cantidadActual <= 1) {
-        _carrito.remove(producto.id);
-      } else {
-        _carrito[producto.id] = cantidadActual - 1;
-      }
+      if (cantidadActual <= 1) _carrito.remove(producto.id);
+      else _carrito[producto.id] = cantidadActual - 1;
     });
   }
 
-  void _vaciarCarrito() {
-    setState(_carrito.clear);
-    _mostrarSnack('Carrito vaciado');
-  }
+  void _vaciarCarrito() => setState(_carrito.clear);
 
   Future<String?> _autenticarUsuario({
     required String nombre,
@@ -264,16 +200,10 @@ class _MainScreenState extends State<MainScreen> {
     try {
       final usuario = registrar
           ? await _service.registrarUsuario(
-              nombre: nombre,
-              email: email,
-              password: password,
-              codigoPostal: _codigoPostalApp, // ENVIAMOS EL CÓDIGO POSTAL DE LA APP A LA BD
-              alergenosIds: alergenosIds,
+              nombre: nombre, email: email, password: password,
+              codigoPostal: _codigoPostalApp, alergenosIds: alergenosIds,
             )
-          : await _service.iniciarSesion(
-              email: email,
-              password: password,
-            );
+          : await _service.iniciarSesion(email: email, password: password);
 
       if (!mounted) return null;
 
@@ -282,15 +212,11 @@ class _MainScreenState extends State<MainScreen> {
         _nombreUsuario = usuario.nombre;
         _emailUsuario = usuario.email;
         _alergenosUsuario = usuario.alergenos;
-        
         _selectedIndex = 0; 
       });
 
       await _cargarDatos();
-
-      _mostrarSnack(
-        registrar ? 'Cuenta creada correctamente' : 'Sesión iniciada correctamente',
-      );
+      _mostrarSnack(registrar ? 'Cuenta creada' : 'Sesión iniciada');
       _pedirAlergenosSiHaceFalta();
       return null;
     } catch (e) {
@@ -302,16 +228,13 @@ class _MainScreenState extends State<MainScreen> {
     try {
       await _service.guardarAlergenosUsuario(alergenosIds);
       final usuario = await _service.obtenerUsuarioActual();
-
       if (!mounted) return null;
-
       setState(() {
         _alergenosUsuario = usuario?.alergenos ?? const [];
         _avisoAlergenosMostrado = _alergenosUsuario.isNotEmpty;
       });
-
       await _cargarDatos();
-      _mostrarSnack('Alérgenos guardados correctamente');
+      _mostrarSnack('Alérgenos guardados');
       return null;
     } catch (e) {
       return _service.mensajeErrorAuth(e);
@@ -319,12 +242,8 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _cerrarSesion() async {
-    try {
-      await _service.cerrarSesion();
-    } catch (_) {}
-
+    try { await _service.cerrarSesion(); } catch (_) {}
     if (!mounted) return;
-
     setState(() {
       _sesionIniciada = false;
       _nombreUsuario = 'Invitado';
@@ -333,105 +252,54 @@ class _MainScreenState extends State<MainScreen> {
       _avisoAlergenosMostrado = false;
       _selectedIndex = 0;
     });
-
     await _cargarDatos();
     _mostrarSnack('Sesión cerrada');
   }
 
   void _pedirAlergenosSiHaceFalta() {
     if (!_sesionIniciada || _alergenosUsuario.isNotEmpty || _avisoAlergenosMostrado) return;
-
     _avisoAlergenosMostrado = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       showDialog<void>(
         context: context,
-        builder: (dialogContext) {
-          return AlertDialog(
-            title: const Text('Configura tus alérgenos'),
-            content: const Text(
-              'Para avisarte en productos y recetas, indica tus alérgenos desde Mi cuenta. No bloquearemos productos: solo te avisaremos antes de comprarlos.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('Ahora no'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-                  _irACuenta();
-                },
-                child: const Text('Configurar'),
-              ),
-            ],
-          );
-        },
+        builder: (ctx) => AlertDialog(
+          title: const Text('Configura tus alérgenos'),
+          content: const Text('Para avisarte en productos, indica tus alérgenos.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Ahora no')),
+            ElevatedButton(onPressed: () { Navigator.pop(ctx); _irACuenta(); }, child: const Text('Configurar')),
+          ],
+        ),
       );
     });
   }
 
-  void _mostrarSnack(
-    String texto, {
-    Color backgroundColor = AppTheme.green,
-    Duration duracion = const Duration(milliseconds: 1400),
-  }) {
+  void _mostrarSnack(String texto, {Color backgroundColor = AppTheme.green}) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(texto),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: backgroundColor,
-          duration: duracion,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-      );
+      ..showSnackBar(SnackBar(
+        content: Text(texto),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: backgroundColor,
+      ));
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_cargando) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: AppTheme.green),
-        ),
-      );
-    }
+    if (_cargando) return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppTheme.green)));
 
     return Scaffold(
       body: SafeArea(child: _buildBody()),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _cambiarPantalla,
-        destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Inicio',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.grid_view_outlined),
-            selectedIcon: Icon(Icons.grid_view_rounded),
-            label: 'Categorías',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.flash_on_outlined),
-            selectedIcon: Icon(Icons.flash_on_rounded),
-            label: 'Ofertas Flash',
-          ),
-          NavigationDestination(
-            icon: CartNavIcon(count: _totalUnidadesCarrito, selected: false),
-            selectedIcon: CartNavIcon(count: _totalUnidadesCarrito, selected: true),
-            label: 'Lista',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Cuenta',
-          ),
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Inicio'),
+          NavigationDestination(icon: Icon(Icons.grid_view_outlined), label: 'Categorías'),
+          NavigationDestination(icon: Icon(Icons.flash_on_outlined), label: 'Ofertas'),
+          NavigationDestination(icon: Icon(Icons.shopping_cart_outlined), label: 'Lista'),
+          NavigationDestination(icon: Icon(Icons.person_outline_rounded), label: 'Cuenta'),
         ],
       ),
     );
@@ -439,25 +307,13 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildBody() {
     if (_specialPage == SpecialPage.recipe && _recetaSeleccionada != null) {
-      return DetalleRecetaPage(
-        receta: _recetaSeleccionada!,
-        productos: _productos,
-        carrito: _carrito,
-        onBack: _volver,
-        onAddProducts: _sumarProductos,
-      );
+      return DetalleRecetaPage(receta: _recetaSeleccionada!, productos: _productos, carrito: _carrito, onBack: _volver, onAddProducts: _sumarProductos);
     }
-
     if (_specialPage == SpecialPage.category && _categoriaSeleccionada != null) {
       return ProductosCategoriaPage(
         categoria: _categoriaSeleccionada!,
-        productos: _productos
-            .where((producto) => producto.categoria == _categoriaSeleccionada)
-            .toList(),
-        carrito: _carrito,
-        onAdd: _sumarProducto,
-        onRemove: _restarProducto,
-        onBack: _volver,
+        productos: _productos.where((p) => p.categoria == _categoriaSeleccionada).toList(),
+        carrito: _carrito, onAdd: _sumarProducto, onRemove: _restarProducto, onBack: _volver,
       );
     }
 
@@ -465,56 +321,26 @@ class _MainScreenState extends State<MainScreen> {
       index: _selectedIndex,
       children: [
         HomePage(
-          productos: _productos,
-          carrito: _carrito,
-          totalUnidades: _totalUnidadesCarrito,
-          onAdd: _sumarProducto,
-          onRemove: _restarProducto,
-          onOpenFlash: _irAFlash,
-          onOpenFlashRecipes: _irAFlashYScrollRecetas, 
-          onOpenCart: _irACarrito,
-          onOpenCategories: _irACategorias,
-          onOpenCategory: _abrirCategoriaEspecifica,
+          productos: _productos, carrito: _carrito, totalUnidades: _totalUnidadesCarrito,
+          onAdd: _sumarProducto, onRemove: _restarProducto, onOpenFlash: _irAFlash,
+          onOpenFlashRecipes: _irAFlashYScrollRecetas, onOpenCart: _irACarrito,
+          onOpenCategories: _irACategorias, onOpenCategory: _abrirCategoriaEspecifica,
         ),
-        CategoriasPage(
-          categorias: _categorias,
-          productos: _productos,
-          carrito: _carrito,
-          onAdd: _sumarProducto,
-          onRemove: _restarProducto,
-        ),
+        CategoriasPage(categorias: _categorias, productos: _productos, carrito: _carrito, onAdd: _sumarProducto, onRemove: _restarProducto),
         FlashPage(
-          productos: _productos,
-          recetas: _recetas,
-          carrito: _carrito,
-          onAdd: _sumarProducto,
-          onRemove: _restarProducto,
-          onOpenRecipe: _abrirReceta,
-          scrollToRecipes: _debeHacerScrollARecetas,
+          productos: _productos, recetas: _recetas, carrito: _carrito,
+          onAdd: _sumarProducto, onRemove: _restarProducto, onOpenRecipe: _abrirReceta,
+          scrollToRecipes: _debeHacerScrollARecetas, onScrollDone: _limpiarScroll,
         ),
         CarritoPage(
-          productos: _productos,
-          carrito: _carrito,
-          total: _totalCarrito,
-          sesionIniciada: _sesionIniciada,
-          onAdd: _sumarProducto,
-          onRemove: _restarProducto,
-          onClear: _vaciarCarrito,
-          onContinueShopping: _irAHome,
-          onRequireLogin: () {
-            _mostrarSnack('Para tramitar el pedido necesitas iniciar sesión');
-            _irACuenta();
-          },
+          productos: _productos, carrito: _carrito, total: _totalCarrito, sesionIniciada: _sesionIniciada,
+          onAdd: _sumarProducto, onRemove: _restarProducto, onClear: _vaciarCarrito, onContinueShopping: _irAHome,
+          onRequireLogin: () { _mostrarSnack('Inicia sesión'); _irACuenta(); },
         ),
         CuentaPage(
-          sesionIniciada: _sesionIniciada,
-          nombreUsuario: _nombreUsuario,
-          emailUsuario: _emailUsuario,
-          alergenosDisponibles: _alergenosDisponibles,
-          alergenosUsuario: _alergenosUsuario,
-          onAuth: _autenticarUsuario,
-          onSaveAlergenos: _guardarAlergenos,
-          onLogout: _cerrarSesion,
+          sesionIniciada: _sesionIniciada, nombreUsuario: _nombreUsuario, emailUsuario: _emailUsuario,
+          alergenosDisponibles: _alergenosDisponibles, alergenosUsuario: _alergenosUsuario,
+          onAuth: _autenticarUsuario, onSaveAlergenos: _guardarAlergenos, onLogout: _cerrarSesion,
         ),
       ],
     );

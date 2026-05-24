@@ -80,7 +80,131 @@ class AppTopBar extends StatelessWidget {
 }
 
 // ==========================================
-// 2. TU HOMEPAGE EXACTAMENTE IGUAL
+// NUEVA PASTILLA VERDE DE RECETAS (BANNER)
+// ==========================================
+class RecipePromoBanner extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const RecipePromoBanner({super.key, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 18),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF007A33), Color(0xFF00A045)], // Verdes estilo Mercadona
+            begin: Alignment.bottomLeft,
+            end: Alignment.topRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF007A33).withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Pequeña etiqueta semitransparente superior
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.restaurant_menu_rounded, color: Colors.white, size: 14),
+                        SizedBox(width: 4),
+                        Text(
+                          'RECETAS',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800, // Menos pesado que w900
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Título principal
+                  const Text(
+                    'Ofertas que\ninspiran recetas',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold, // Cambiado a bold normal para que se lea mejor
+                      height: 1.2, // Un poco más de espacio entre líneas
+                      letterSpacing: -0.2, // Menos apretado
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  
+                  // Subtítulo
+                  Text(
+                    'Cocina más gastando menos con ingredientes rebajados.',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.95),
+                      fontSize: 14,
+                      height: 1.4, // Mejor legibilidad
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            
+            // Decoración visual a la derecha (Emojis superpuestos y círculo)
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const Text('🥘', style: TextStyle(fontSize: 42)),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Text('⚡', style: TextStyle(fontSize: 14)),
+                  ),
+                )
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// TU HOMEPAGE EXACTAMENTE IGUAL
 // ==========================================
 class HomePage extends StatefulWidget {
   final List<Producto> productos;
@@ -181,8 +305,8 @@ class _HomePageState extends State<HomePage> {
               const DeliveryBanner(),
               const SizedBox(height: 8),
               
-              // Pastilla verde interactiva que lleva a las recetas en Flash
-              PromoHeroCard(onTap: widget.onOpenFlashRecipes),
+              // ---> AQUI COLOCAMOS LA NUEVA PASTILLA VERDE <---
+              RecipePromoBanner(onTap: widget.onOpenFlashRecipes),
 
               const SizedBox(height: 18),
               
