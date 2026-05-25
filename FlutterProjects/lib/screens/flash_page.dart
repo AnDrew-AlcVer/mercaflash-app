@@ -13,8 +13,7 @@ class FlashPage extends StatefulWidget {
   final ValueChanged<Producto> onRemove;
   final VoidCallback? onBack;
   final ValueChanged<Receta> onOpenRecipe;
-  final bool scrollToRecipes;
-  final VoidCallback? onScrollDone; // <--- Callback para avisar al padre
+  final int scrollTrigger; 
 
   const FlashPage({
     super.key,
@@ -25,8 +24,7 @@ class FlashPage extends StatefulWidget {
     required this.onRemove,
     this.onBack,
     required this.onOpenRecipe,
-    this.scrollToRecipes = false, 
-    this.onScrollDone,
+    this.scrollTrigger = 0, 
   });
 
   @override
@@ -40,7 +38,7 @@ class _FlashPageState extends State<FlashPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.scrollToRecipes) {
+    if (widget.scrollTrigger > 0) {
       _triggerScroll();
     }
   }
@@ -48,31 +46,27 @@ class _FlashPageState extends State<FlashPage> {
   @override
   void didUpdateWidget(FlashPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.scrollToRecipes && !oldWidget.scrollToRecipes) {
+    if (widget.scrollTrigger != oldWidget.scrollTrigger) {
       _triggerScroll();
     }
   }
 
   void _triggerScroll() {
-    Future.delayed(const Duration(milliseconds: 200), () {
+    // Al usar SingleChildScrollView la pantalla ya está construida,
+    // un pequeño delay hace que el usuario "vea" cómo baja.
+    Future.delayed(const Duration(milliseconds: 150), () {
       if (!mounted) return;
-      _scrollToRecetas();
+      
+      final context = _recetasKey.currentContext;
+      if (context != null) {
+        Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOutCubic,
+          alignment: 0.02, // Deja un margen bonito por encima del título
+        );
+      }
     });
-  }
-
-  void _scrollToRecetas() {
-    final context = _recetasKey.currentContext;
-    if (context != null) {
-      Scrollable.ensureVisible(
-        context,
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.easeOutCubic,
-        alignment: 0.05,
-      ).then((_) {
-        // Al terminar el scroll, avisamos al padre para limpiar el estado
-        if (widget.onScrollDone != null) widget.onScrollDone!();
-      });
-    }
   }
 
   @override
@@ -95,56 +89,61 @@ class _FlashPageState extends State<FlashPage> {
       children: [
         SimpleHeader(title: 'Ofertas Flash', onBack: widget.onBack),
         Expanded(
-          child: ListView(
+          // SOLUCIÓN: Cambiamos ListView por SingleChildScrollView + Column
+          // para que siempre encuentre el título "Recetas" sin importar si está fuera de pantalla.
+          child: SingleChildScrollView(
             controller: _scrollController, 
             padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
-            children: [
-              const SectionTitle(
-                title: 'Productos con descuentos increíbles',
-                subtitle: 'Dales una segunda oportunidad y cuida tu bolsillo',
-              ),
-              
-              if (productosAMostrar.isEmpty)
-                const EmptyState(
-                  icon: Icons.flash_off_rounded,
-                  title: 'No hay ofertas flash ahora mismo',
-                  subtitle: 'Cuando haya productos próximos con oferta aparecerán aquí.',
-                )
-              else
-                ...productosAMostrar.map(
-                  (producto) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: ExpiryProductCard(
-                      producto: producto,
-                      cantidad: widget.carrito[producto.id] ?? 0,
-                      onAdd: () => widget.onAdd(producto),
-                      onRemove: () => widget.onRemove(producto),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SectionTitle(
+                  title: 'Productos con descuentos increíbles',
+                  subtitle: 'Dales una segunda oportunidad y cuida tu bolsillo',
+                ),
+                
+                if (productosAMostrar.isEmpty)
+                  const EmptyState(
+                    icon: Icons.flash_off_rounded,
+                    title: 'No hay ofertas flash ahora mismo',
+                    subtitle: 'Cuando haya productos próximos con oferta aparecerán aquí.',
+                  )
+                else
+                  ...productosAMostrar.map(
+                    (producto) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: ExpiryProductCard(
+                        producto: producto,
+                        cantidad: widget.carrito[producto.id] ?? 0,
+                        onAdd: () => widget.onAdd(producto),
+                        onRemove: () => widget.onRemove(producto),
+                      ),
                     ),
                   ),
+                
+                const SizedBox(height: 12),
+                
+                SectionTitle(
+                  key: _recetasKey, 
+                  title: 'Recetas',
+                  subtitle: 'Utiliza los productos rebajados en estas nuevas recetas recomendadas.',
                 ),
-              
-              const SizedBox(height: 12),
-              
-              SectionTitle(
-                key: _recetasKey, 
-                title: 'Recetas',
-                subtitle: 'Utiliza los productos rebajados en estas nuevas recetas recomendadas.',
-              ),
-              
-              if (recetasAMostrar.isEmpty)
-                const EmptyState(
-                  icon: Icons.restaurant_menu_rounded,
-                  title: 'No hay recetas disponibles',
-                  subtitle: 'Añadiremos recetas sugeridas cuando estén disponibles.',
-                )
-              else
-                ...recetasAMostrar.map(
-                  (receta) => RecipeCard(
-                    receta: receta,
-                    onTap: () => widget.onOpenRecipe(receta),
+                
+                if (recetasAMostrar.isEmpty)
+                  const EmptyState(
+                    icon: Icons.restaurant_menu_rounded,
+                    title: 'No hay recetas disponibles',
+                    subtitle: 'Añadiremos recetas sugeridas cuando estén disponibles.',
+                  )
+                else
+                  ...recetasAMostrar.map(
+                    (receta) => RecipeCard(
+                      receta: receta,
+                      onTap: () => widget.onOpenRecipe(receta),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ],

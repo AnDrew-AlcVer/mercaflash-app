@@ -6,18 +6,17 @@ import '../widgets/product_cards.dart';
 import '../widgets/ui_components.dart';
 
 // ==========================================
-// 1. APP TOP BAR MODIFICADO (CON LA IMAGEN)
+// 1. APP TOP BAR MODIFICADO (SIN MENÚ)
 // ==========================================
 class AppTopBar extends StatelessWidget {
   final int totalUnidades;
   final VoidCallback onOpenCart;
-  final VoidCallback onOpenCategories;
+  // Eliminamos onOpenCategories ya que no hay botón de menú
 
   const AppTopBar({
     super.key,
     required this.totalUnidades,
     required this.onOpenCart,
-    required this.onOpenCategories,
   });
 
   @override
@@ -29,16 +28,14 @@ class AppTopBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Botón de menú / categorías
-            IconButton(
-              icon: const Icon(Icons.menu, size: 28),
-              onPressed: onOpenCategories,
-            ),
+            // Espacio vacío del mismo tamaño que el botón original 
+            // para que la imagen central NO se mueva de sitio.
+            const SizedBox(width: 48),
             
             // ---> AQUÍ ESTÁ TU IMAGEN <---
             Image.asset(
               'assets/images/textmercadona.png',
-              height: 32, // Puedes ajustar este número si la ves muy grande o pequeña
+              height: 32,
               fit: BoxFit.contain,
             ),
             
@@ -132,7 +129,7 @@ class RecipePromoBanner extends StatelessWidget {
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 10,
-                            fontWeight: FontWeight.w800, // Menos pesado que w900
+                            fontWeight: FontWeight.w800,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -147,9 +144,9 @@ class RecipePromoBanner extends StatelessWidget {
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,
-                      fontWeight: FontWeight.bold, // Cambiado a bold normal para que se lea mejor
-                      height: 1.2, // Un poco más de espacio entre líneas
-                      letterSpacing: -0.2, // Menos apretado
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                      letterSpacing: -0.2,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -160,7 +157,7 @@ class RecipePromoBanner extends StatelessWidget {
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.95),
                       fontSize: 14,
-                      height: 1.4, // Mejor legibilidad
+                      height: 1.4,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -204,7 +201,7 @@ class RecipePromoBanner extends StatelessWidget {
 }
 
 // ==========================================
-// TU HOMEPAGE EXACTAMENTE IGUAL
+// HOMEPAGE
 // ==========================================
 class HomePage extends StatefulWidget {
   final List<Producto> productos;
@@ -296,7 +293,7 @@ class _HomePageState extends State<HomePage> {
         AppTopBar(
           totalUnidades: widget.totalUnidades,
           onOpenCart: widget.onOpenCart,
-          onOpenCategories: widget.onOpenCategories,
+          // Ya no pasamos onOpenCategories aquí
         ),
         Expanded(
           child: ListView(

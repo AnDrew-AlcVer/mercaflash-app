@@ -428,7 +428,7 @@ class _CuentaPageState extends State<CuentaPage> {
           child: Text(
             _registro
                 ? 'Ya tengo cuenta, iniciar sesión'
-                : 'No tengo cuenta, registrarme',
+                : 'Crea una cuenta',
             style: const TextStyle(
               color: AppTheme.green,
               fontWeight: FontWeight.w900,
@@ -443,7 +443,7 @@ class _CuentaPageState extends State<CuentaPage> {
             borderRadius: BorderRadius.circular(18),
           ),
           child: const Text(
-            'Importante: la app no bloquea productos. Si un producto o receta coincide con tus alérgenos, verás un aviso claro y aun así podrás añadirlo al carrito.',
+            'Importante: En el modo invitado, la aplicación no oculta productos con alérgenos, verás un aviso y aún así podrás añadirlo al carrito.',
             style: TextStyle(
               color: AppTheme.green,
               height: 1.35,

@@ -40,13 +40,12 @@ class _MainScreenState extends State<MainScreen> {
   bool _cargando = true;
   bool _avisoAlergenosMostrado = false;
   
-  bool _debeHacerScrollARecetas = false;
+  int _scrollRecetasTrigger = 0;
 
   late bool _sesionIniciada;
   late String _nombreUsuario;
   late String _emailUsuario;
   
-  // Variable local que rescatará el código de SharedPreferences
   String _codigoPostalApp = '00000'; 
 
   SpecialPage? _specialPage;
@@ -77,7 +76,6 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _cargarDatos() async {
     try {
-      // 1. Cargamos el Código Postal almacenado localmente
       final prefs = await SharedPreferences.getInstance();
       _codigoPostalApp = prefs.getString('mi_codigo_postal_real') ?? '00000'; 
 
@@ -119,8 +117,6 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  // --- Funciones de navegación y estado ---
-
   int get _totalUnidadesCarrito => _carrito.values.fold(0, (total, cantidad) => total + cantidad);
 
   double get _totalCarrito {
@@ -145,23 +141,24 @@ class _MainScreenState extends State<MainScreen> {
       _specialPage = null;
       _categoriaSeleccionada = null;
       _recetaSeleccionada = null;
-      if (index != 2) _debeHacerScrollARecetas = false;
     });
   }
 
   void _irAHome() => _cambiarPantalla(0);
   void _irACategorias() => _cambiarPantalla(1);
   void _irAFlash() {
-    setState(() => _debeHacerScrollARecetas = false);
     _cambiarPantalla(2);
   }
+  
   void _irAFlashYScrollRecetas() {
-    setState(() => _debeHacerScrollARecetas = true);
+    setState(() {
+      _scrollRecetasTrigger++;
+    });
     _cambiarPantalla(2);
   }
+  
   void _irACarrito() => _cambiarPantalla(3);
   void _irACuenta() => _cambiarPantalla(4);
-  void _limpiarScroll() => setState(() => _debeHacerScrollARecetas = false);
 
   void _abrirReceta(Receta receta) => setState(() { _specialPage = SpecialPage.recipe; _recetaSeleccionada = receta; });
   void _abrirCategoriaEspecifica(String nombre) => setState(() { _specialPage = SpecialPage.category; _categoriaSeleccionada = nombre; });
@@ -330,7 +327,7 @@ class _MainScreenState extends State<MainScreen> {
         FlashPage(
           productos: _productos, recetas: _recetas, carrito: _carrito,
           onAdd: _sumarProducto, onRemove: _restarProducto, onOpenRecipe: _abrirReceta,
-          scrollToRecipes: _debeHacerScrollARecetas, onScrollDone: _limpiarScroll,
+          scrollTrigger: _scrollRecetasTrigger, 
         ),
         CarritoPage(
           productos: _productos, carrito: _carrito, total: _totalCarrito, sesionIniciada: _sesionIniciada,
