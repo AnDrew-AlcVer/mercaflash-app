@@ -81,80 +81,118 @@ class RecipePromoBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. Sobre-título pequeño
-            const Text(
-              'NUEVA SECCIÓN',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
-                color: Color(0xFF5A5A5A),
+    // 1. Sustituimos GestureDetector por Material + InkWell
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        splashColor: AppTheme.green.withOpacity(0.2), // Efecto onda color verde
+        highlightColor: Colors.black.withOpacity(0.05),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Sobre-título pequeño
+              const Text(
+                'NUEVA SECCIÓN',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                  color: Color(0xFF5A5A5A),
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            
-            // 2. Título principal grande
-            const Text(
-              'Ofertas que inspiran recetas',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                color: AppTheme.black,
-                height: 1.1,
-                letterSpacing: -0.5,
+              const SizedBox(height: 4),
+              
+              // Título principal grande
+              const Text(
+                'Ofertas que inspiran recetas',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.black,
+                  height: 1.1,
+                  letterSpacing: -0.5,
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            
-            // 3. Subtítulo gris
-            const Text(
-              'Pulsa aquí para cocinar más, gastando menos',
-              style: TextStyle(
-                fontSize: 15,
-                color: AppTheme.gray,
-                fontWeight: FontWeight.w500,
+              const SizedBox(height: 6),
+              
+              // Subtítulo gris
+              const Text(
+                'Pulsa aquí para cocinar más, gastando menos',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: AppTheme.gray,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            
-            // 4. Imagen grande a borde completo
-            Container(
-              height: 200,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0F0F0),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: imageUrl != null && imageUrl!.isNotEmpty
-                  ? Image.network(
-                      imageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Center(child: Icon(Icons.restaurant_menu_rounded, size: 40, color: Colors.grey)),
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return const Center(child: CircularProgressIndicator(color: AppTheme.green));
-                      },
+              const SizedBox(height: 16),
+              
+              // Imagen grande a borde completo
+              Container(
+                height: 200,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F0F0),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     )
-                  : const Center(child: Icon(Icons.restaurant_menu_rounded, size: 40, color: Colors.grey)),
-            ),
-          ],
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                // 2. Envolvemos la imagen en un Stack para añadir el botón flotante
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Imagen de fondo
+                    imageUrl != null && imageUrl!.isNotEmpty
+                        ? Image.network(
+                            imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Center(child: Icon(Icons.restaurant_menu_rounded, size: 40, color: Colors.grey)),
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return const Center(child: CircularProgressIndicator(color: AppTheme.green));
+                            },
+                          )
+                        : const Center(child: Icon(Icons.restaurant_menu_rounded, size: 40, color: Colors.grey)),
+                    
+                    // Indicador visual de clic (botón flotante inferior derecho)
+                    Positioned(
+                      bottom: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            )
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 16,
+                          color: AppTheme.green,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -166,7 +204,7 @@ class RecipePromoBanner extends StatelessWidget {
 // ==========================================
 class HomePage extends StatefulWidget {
   final List<Producto> productos;
-  final List<Receta> recetas; // <-- NUEVO: Recibe la lista de recetas
+  final List<Receta> recetas; 
   final Map<String, int> carrito;
   final int totalUnidades;
   final ValueChanged<Producto> onAdd;
@@ -180,7 +218,7 @@ class HomePage extends StatefulWidget {
   const HomePage({
     super.key,
     required this.productos,
-    required this.recetas, // <-- NUEVO
+    required this.recetas, 
     required this.carrito,
     required this.totalUnidades,
     required this.onAdd,
@@ -200,7 +238,7 @@ class _HomePageState extends State<HomePage> {
   List<Producto> _flashMostrar = [];
   List<Producto> _recomendados = [];
   String _categoriaAleatoria = '';
-  String? _imagenRecetaRandom; // Guardará la imagen de la receta seleccionada
+  String? _imagenRecetaRandom; 
 
   @override
   void initState() {
@@ -270,9 +308,9 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.only(bottom: 28),
             children: [
               const DeliveryBanner(),
-              const SizedBox(height: 24), // Un poco más de aire
+              const SizedBox(height: 24), 
               
-              // ---> AQUI COLOCAMOS EL NUEVO BANNER LIMPIO <---
+              // BANNER DE RECETAS ACTUALIZADO
               RecipePromoBanner(
                 imageUrl: _imagenRecetaRandom, 
                 onTap: widget.onOpenFlashRecipes,
@@ -280,7 +318,6 @@ class _HomePageState extends State<HomePage> {
 
               const SizedBox(height: 32),
               
-              // Título clicable para ir a la pestaña de Ofertas Flash
               GestureDetector(
                 onTap: widget.onOpenFlash,
                 behavior: HitTestBehavior.opaque,
@@ -299,7 +336,6 @@ class _HomePageState extends State<HomePage> {
 
               const SizedBox(height: 18),
               
-              // Título clicable para abrir la pantalla de productos de esa categoría
               GestureDetector(
                 onTap: () {
                   if (_categoriaAleatoria.isNotEmpty) {
