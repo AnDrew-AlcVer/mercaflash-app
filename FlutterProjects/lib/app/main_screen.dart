@@ -37,14 +37,13 @@ class _MainScreenState extends State<MainScreen> {
 
   int _selectedIndex = 0;
   bool _cargando = true;
-  
   int _scrollRecetasTrigger = 0;
 
   late bool _sesionIniciada;
   late String _nombreUsuario;
   late String _emailUsuario;
   
-  String _codigoPostalApp = '00000'; 
+  String _codigoPostalGlobal = '00000';
 
   SpecialPage? _specialPage;
   String? _categoriaSeleccionada;
@@ -61,25 +60,22 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-
     _selectedIndex = widget.selectedIndexInicial;
     _sesionIniciada = widget.sesionInicialIniciada;
     _nombreUsuario = widget.nombreUsuarioInicial;
     _emailUsuario = widget.emailUsuarioInicial;
     _alergenosUsuario = widget.alergenosUsuarioIniciales;
-
     _cargarDatos();
   }
 
   Future<void> _cargarDatos() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _codigoPostalApp = prefs.getString('mi_codigo_postal_real') ?? '00000'; 
+      String cpLocal = prefs.getString('mi_codigo_postal_real') ?? '00000';
 
       final usuario = await _service.obtenerUsuarioActual();
       final alergenosDisponibles = await _service.obtenerAlergenosDisponibles();
       final productos = await _service.obtenerProductos();
-      final productosFlash = productos.where((producto) => producto.esFlash).toList();
       final recetas = await _service.obtenerRecetasSugeridas();
       final categorias = await _service.obtenerCategorias();
 
@@ -91,10 +87,13 @@ class _MainScreenState extends State<MainScreen> {
           _nombreUsuario = usuario.nombre;
           _emailUsuario = usuario.email;
           _alergenosUsuario = usuario.alergenos;
-        } else if (!_sesionIniciada) {
+          _codigoPostalGlobal = usuario.codigoPostal.isNotEmpty ? usuario.codigoPostal : cpLocal;
+        } else {
+          _sesionIniciada = false;
           _nombreUsuario = 'Invitado';
           _emailUsuario = '';
           _alergenosUsuario = const [];
+          _codigoPostalGlobal = cpLocal;
         }
 
         _alergenosDisponibles = alergenosDisponibles;
@@ -103,10 +102,7 @@ class _MainScreenState extends State<MainScreen> {
         _categorias = categorias;
         _cargando = false;
       });
-
     } catch (e, stacktrace) {
-      debugPrint('Error cargando datos: $e');
-      debugPrintStack(stackTrace: stacktrace);
       if (!mounted) return;
       setState(() => _cargando = false);
     }
@@ -141,17 +137,8 @@ class _MainScreenState extends State<MainScreen> {
 
   void _irAHome() => _cambiarPantalla(0);
   void _irACategorias() => _cambiarPantalla(1);
-  void _irAFlash() {
-    _cambiarPantalla(2);
-  }
-  
-  void _irAFlashYScrollRecetas() {
-    setState(() {
-      _scrollRecetasTrigger++;
-    });
-    _cambiarPantalla(2);
-  }
-  
+  void _irAFlash() => _cambiarPantalla(2);
+  void _irAFlashYScrollRecetas() { setState(() { _scrollRecetasTrigger++; }); _cambiarPantalla(2); }
   void _irACarrito() => _cambiarPantalla(3);
   void _irACuenta() => _cambiarPantalla(4);
 
@@ -166,9 +153,7 @@ class _MainScreenState extends State<MainScreen> {
 
   void _sumarProductos(List<Producto> productos) {
     if (productos.isEmpty) return;
-    setState(() {
-      for (final p in productos) _carrito.update(p.id, (c) => c + 1, ifAbsent: () => 1);
-    });
+    setState(() { for (final p in productos) _carrito.update(p.id, (c) => c + 1, ifAbsent: () => 1); });
     _mostrarSnack('${productos.length} productos añadidos');
   }
 
@@ -190,25 +175,12 @@ class _MainScreenState extends State<MainScreen> {
     required List<int> alergenosIds,
   }) async {
     try {
-      final usuario = registrar
-          ? await _service.registrarUsuario(
-              nombre: nombre, email: email, password: password,
-              codigoPostal: _codigoPostalApp, alergenosIds: alergenosIds,
-            )
+      registrar
+          ? await _service.registrarUsuario(nombre: nombre, email: email, password: password, alergenosIds: alergenosIds)
           : await _service.iniciarSesion(email: email, password: password);
 
-      if (!mounted) return null;
-
-      setState(() {
-        _sesionIniciada = true;
-        _nombreUsuario = usuario.nombre;
-        _emailUsuario = usuario.email;
-        _alergenosUsuario = usuario.alergenos;
-        _selectedIndex = 0; 
-      });
-
-      await _cargarDatos();
-      _mostrarSnack(registrar ? 'Cuenta creada' : 'Sesión iniciada');
+      await _cargarDatos(); 
+      _mostrarSnack(registrar ? 'Cuenta creada con éxito' : 'Sesión iniciada con éxito');
       return null;
     } catch (e) {
       return _service.mensajeErrorAuth(e);
@@ -218,11 +190,6 @@ class _MainScreenState extends State<MainScreen> {
   Future<String?> _guardarAlergenos(List<int> alergenosIds) async {
     try {
       await _service.guardarAlergenosUsuario(alergenosIds);
-      final usuario = await _service.obtenerUsuarioActual();
-      if (!mounted) return null;
-      setState(() {
-        _alergenosUsuario = usuario?.alergenos ?? const [];
-      });
       await _cargarDatos();
       _mostrarSnack('Alérgenos guardados');
       return null;
@@ -233,14 +200,6 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _cerrarSesion() async {
     try { await _service.cerrarSesion(); } catch (_) {}
-    if (!mounted) return;
-    setState(() {
-      _sesionIniciada = false;
-      _nombreUsuario = 'Invitado';
-      _emailUsuario = '';
-      _alergenosUsuario = const [];
-      _selectedIndex = 0;
-    });
     await _cargarDatos();
     _mostrarSnack('Sesión cerrada');
   }
@@ -248,11 +207,7 @@ class _MainScreenState extends State<MainScreen> {
   void _mostrarSnack(String texto, {Color backgroundColor = AppTheme.green}) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(texto),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: backgroundColor,
-      ));
+      ..showSnackBar(SnackBar(content: Text(texto), behavior: SnackBarBehavior.floating, backgroundColor: backgroundColor));
   }
 
   @override
@@ -260,17 +215,58 @@ class _MainScreenState extends State<MainScreen> {
     if (_cargando) return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppTheme.green)));
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(child: _buildBody()),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _cambiarPantalla,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Inicio'),
-          NavigationDestination(icon: Icon(Icons.grid_view_outlined), label: 'Categorías'),
-          NavigationDestination(icon: Icon(Icons.flash_on_outlined), label: 'Ofertas'),
-          NavigationDestination(icon: Icon(Icons.shopping_cart_outlined), label: 'Lista'),
-          NavigationDestination(icon: Icon(Icons.person_outline_rounded), label: 'Cuenta'),
-        ],
+      bottomNavigationBar: NavigationBarTheme(
+        data: NavigationBarThemeData(
+          backgroundColor: Colors.white,
+          indicatorColor: AppTheme.green.withOpacity(0.15),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const TextStyle(color: AppTheme.green, fontWeight: FontWeight.bold, fontSize: 12);
+            }
+            return const TextStyle(color: AppTheme.gray, fontWeight: FontWeight.w600, fontSize: 12);
+          }),
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const IconThemeData(color: AppTheme.green, size: 26);
+            }
+            return const IconThemeData(color: AppTheme.gray, size: 26);
+          }),
+        ),
+        child: NavigationBar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: _cambiarPantalla,
+          elevation: 0, 
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded), 
+              label: 'Inicio',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.grid_view_outlined),
+              selectedIcon: Icon(Icons.grid_view_rounded),
+              label: 'Categorías',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.bolt_outlined), 
+              selectedIcon: Icon(Icons.bolt_rounded),
+              label: 'MercaFlash',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.shopping_cart_outlined),
+              selectedIcon: Icon(Icons.shopping_cart_rounded),
+              label: 'Lista',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded),
+              selectedIcon: Icon(Icons.person_rounded),
+              label: 'Cuenta',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -281,8 +277,7 @@ class _MainScreenState extends State<MainScreen> {
     }
     if (_specialPage == SpecialPage.category && _categoriaSeleccionada != null) {
       return ProductosCategoriaPage(
-        categoria: _categoriaSeleccionada!,
-        productos: _productos.where((p) => p.categoria == _categoriaSeleccionada).toList(),
+        categoria: _categoriaSeleccionada!, productos: _productos.where((p) => p.categoria == _categoriaSeleccionada).toList(),
         carrito: _carrito, onAdd: _sumarProducto, onRemove: _restarProducto, onBack: _volver,
       );
     }
@@ -291,10 +286,17 @@ class _MainScreenState extends State<MainScreen> {
       index: _selectedIndex,
       children: [
         HomePage(
-          productos: _productos, carrito: _carrito, totalUnidades: _totalUnidadesCarrito,
-          onAdd: _sumarProducto, onRemove: _restarProducto, onOpenFlash: _irAFlash,
-          onOpenFlashRecipes: _irAFlashYScrollRecetas, onOpenCart: _irACarrito,
-          onOpenCategories: _irACategorias, onOpenCategory: _abrirCategoriaEspecifica,
+          productos: _productos, 
+          recetas: _recetas, // <-- AÑADIDO: Pasamos las recetas al HomePage
+          carrito: _carrito, 
+          totalUnidades: _totalUnidadesCarrito,
+          onAdd: _sumarProducto, 
+          onRemove: _restarProducto, 
+          onOpenFlash: _irAFlash,
+          onOpenFlashRecipes: _irAFlashYScrollRecetas, 
+          onOpenCart: _irACarrito,
+          onOpenCategories: _irACategorias, 
+          onOpenCategory: _abrirCategoriaEspecifica,
         ),
         CategoriasPage(categorias: _categorias, productos: _productos, carrito: _carrito, onAdd: _sumarProducto, onRemove: _restarProducto),
         FlashPage(
@@ -302,23 +304,15 @@ class _MainScreenState extends State<MainScreen> {
           onAdd: _sumarProducto, onRemove: _restarProducto, onOpenRecipe: _abrirReceta,
           scrollTrigger: _scrollRecetasTrigger, 
         ),
-        
-        // AQUÍ ESTÁ LA SOLUCIÓN (Añadido onGoToProducts)
         CarritoPage(
-          productos: _productos, 
-          carrito: _carrito, 
-          total: _totalCarrito, 
-          sesionIniciada: _sesionIniciada,
-          onAdd: _sumarProducto, 
-          onRemove: _restarProducto, 
-          onClear: _vaciarCarrito, 
-          onContinueShopping: _irAHome,
-          onRequireLogin: () { _mostrarSnack('Inicia sesión'); _irACuenta(); },
-          onGoToProducts: _irACategorias, // Te manda directo a "Categorías" para ver los productos
+          productos: _productos, carrito: _carrito, total: _totalCarrito, sesionIniciada: _sesionIniciada,
+          onAdd: _sumarProducto, onRemove: _restarProducto, onClear: _vaciarCarrito, onContinueShopping: _irAHome,
+          onRequireLogin: () { _mostrarSnack('Inicia sesión para tramitar'); _irACuenta(); },
+          onGoToProducts: _irACategorias,
         ),
-        
         CuentaPage(
           sesionIniciada: _sesionIniciada, nombreUsuario: _nombreUsuario, emailUsuario: _emailUsuario,
+          codigoPostal: _codigoPostalGlobal, 
           alergenosDisponibles: _alergenosDisponibles, alergenosUsuario: _alergenosUsuario,
           onAuth: _autenticarUsuario, onSaveAlergenos: _guardarAlergenos, onLogout: _cerrarSesion,
         ),

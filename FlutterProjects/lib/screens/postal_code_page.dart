@@ -14,15 +14,19 @@ class PostalCodePage extends StatefulWidget {
 class _PostalCodePageState extends State<PostalCodePage> {
   final TextEditingController _codigoController = TextEditingController();
 
-  // Esta función guarda en la memoria del móvil que ya se ha pasado este paso
   Future<void> _entrar() async {
     final prefs = await SharedPreferences.getInstance();
+    
+    // 1. Evitamos que vuelva a salir esta pantalla al reiniciar la app
     await prefs.setBool('codigo_postal_guardado', true);
+    
+    // 2. Guardamos el CP localmente (por defecto 00000 si lo dejan vacío)
+    final cpTexto = _codigoController.text.trim();
+    await prefs.setString('mi_codigo_postal_real', cpTexto.isNotEmpty ? cpTexto : '00000');
 
     if (!mounted) return;
     
-    // Navegamos al MainScreen y ELIMINAMOS esta pantalla del historial
-    // para que si el usuario le da hacia atrás, no vuelva aquí.
+    // pushReplacement destruye esta pantalla para que no se pueda volver atrás
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const MainScreen()),
     );
@@ -45,18 +49,12 @@ class _PostalCodePageState extends State<PostalCodePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 30),
-              
-              // LOGO NUEVO
               Image.asset(
-                // OJO: Asegúrate de poner la extensión correcta (.png o .jpg)
                 'assets/images/logotextmercadona.png', 
-                height: 40, // Ajusta este valor para que quede al tamaño que te guste
+                height: 40,
                 fit: BoxFit.contain,
               ),
-              
               const SizedBox(height: 50),
-              
-              // SALUDO
               const Text(
                 '¡Hola! 👋',
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.black),
@@ -66,28 +64,18 @@ class _PostalCodePageState extends State<PostalCodePage> {
                 'Recibe tu compra en casa',
                 style: TextStyle(fontSize: 18, color: Colors.black87),
               ),
-              
               const SizedBox(height: 40),
-              
-              // INPUT CÓDIGO POSTAL
               TextField(
                 controller: _codigoController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
                   hintText: 'Código postal',
                   hintStyle: TextStyle(color: Colors.black38, fontSize: 18),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.black26),
-                  ),
-                  focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: AppTheme.green, width: 2),
-                  ),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black26)),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.green, width: 2)),
                 ),
               ),
-              
               const SizedBox(height: 16),
-              
-              // BOTÓN USAR MI UBICACIÓN
               TextButton.icon(
                 onPressed: _entrar, 
                 icon: const Icon(Icons.near_me_rounded, color: AppTheme.green, size: 20),
@@ -95,15 +83,9 @@ class _PostalCodePageState extends State<PostalCodePage> {
                   'Usar mi ubicación',
                   style: TextStyle(color: AppTheme.green, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  alignment: Alignment.centerLeft,
-                ),
+                style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft),
               ),
-              
               const SizedBox(height: 40),
-              
-              // BOTÓN ENTRAR VERDE
               SizedBox(
                 width: double.infinity,
                 height: 54,
@@ -112,15 +94,10 @@ class _PostalCodePageState extends State<PostalCodePage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.green,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Entrar',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                  ),
+                  child: const Text('Entrar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],

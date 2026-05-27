@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/producto_model.dart';
 
@@ -22,9 +23,7 @@ class SupabaseService {
   final SupabaseClient _client = Supabase.instance.client;
 
   User? get usuarioActualRaw => _client.auth.currentUser;
-
   bool get sesionActiva => usuarioActualRaw != null;
-
   String? get _usuarioActualId => usuarioActualRaw?.id;
 
   Future<UsuarioSesion?> obtenerUsuarioActual() async {
@@ -50,22 +49,19 @@ class SupabaseService {
         nombre = perfil['nombre']?.toString().trim() ?? '';
         email = perfil['correo']?.toString().trim() ?? email; 
         codigoPostal = perfil['codigo_postal']?.toString().trim() ?? '';
+        
+        // LOGIN: Si obtenemos el CP de la base de datos, sobrescribimos el local 
+        // para descartar el anterior.
+        if (codigoPostal.isNotEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('mi_codigo_postal_real', codigoPostal);
+        }
       }
     } catch (_) {}
 
-    if (nombre.isEmpty && nombreMetadata != null && nombreMetadata.isNotEmpty) {
-      nombre = nombreMetadata;
-    }
-
-    if (nombre.isEmpty &&
-        nombreCompletoMetadata != null &&
-        nombreCompletoMetadata.isNotEmpty) {
-      nombre = nombreCompletoMetadata;
-    }
-
-    if (nombre.isEmpty) {
-      nombre = email.contains('@') ? email.split('@').first : 'Usuario';
-    }
+    if (nombre.isEmpty && nombreMetadata != null && nombreMetadata.isNotEmpty) nombre = nombreMetadata;
+    if (nombre.isEmpty && nombreCompletoMetadata != null && nombreCompletoMetadata.isNotEmpty) nombre = nombreCompletoMetadata;
+    if (nombre.isEmpty) nombre = email.contains('@') ? email.split('@').first : 'Usuario';
 
     final alergenos = await obtenerAlergenosUsuario();
     return UsuarioSesion(
@@ -77,25 +73,11 @@ class SupabaseService {
     );
   }
 
-  Future<UsuarioSesion> iniciarSesion({
-    required String email,
-    required String password,
-  }) async {
-    final response = await _client.auth.signInWithPassword(
-      email: email.trim(),
-      password: password,
-    );
-
-    final user = response.user;
-    if (user == null) {
-      throw AuthException('No se ha podido iniciar sesión.');
-    }
-
+  Future<UsuarioSesion> iniciarSesion({required String email, required String password}) async {
+    final response = await _client.auth.signInWithPassword(email: email.trim(), password: password);
+    if (response.user == null) throw AuthException('No se ha podido iniciar sesión.');
     final usuario = await obtenerUsuarioActual();
-    if (usuario == null) {
-      throw AuthException('No se ha podido cargar el usuario.');
-    }
-
+    if (usuario == null) throw AuthException('No se ha podido cargar el usuario.');
     return usuario;
   }
 
@@ -103,11 +85,14 @@ class SupabaseService {
     required String nombre,
     required String email,
     required String password,
-    required String codigoPostal,
     List<int> alergenosIds = const [],
   }) async {
     final nombreLimpio = nombre.trim();
     final emailLimpio = email.trim();
+
+    // REGISTRO: Leemos el CP guardado en local en la pantalla inicial
+    final prefs = await SharedPreferences.getInstance();
+    final cpLocal = prefs.getString('mi_codigo_postal_real') ?? '00000';
 
     final response = await _client.auth.signUp(
       email: emailLimpio,
@@ -116,15 +101,14 @@ class SupabaseService {
     );
 
     final user = response.user;
-    if (user == null) {
-      throw AuthException('No se ha podido registrar el usuario.');
-    }
+    if (user == null) throw AuthException('No se ha podido registrar el usuario.');
 
+    // Subimos ese CP local al campo codigo_postal de la base de datos
     await _guardarPerfilUsuario(
       id: user.id,
       nombre: nombreLimpio,
       email: emailLimpio,
-      codigoPostal: codigoPostal,
+      codigoPostal: cpLocal,
     );
 
     await guardarAlergenosUsuario(alergenosIds, usuarioIdForzado: user.id);
@@ -133,108 +117,49 @@ class SupabaseService {
     if (usuario != null) return usuario;
 
     final alergenosDisponibles = await obtenerAlergenosDisponibles();
-    final seleccionados = alergenosDisponibles
-        .where((alergeno) => alergenosIds.contains(alergeno.id))
-        .toList();
+    final seleccionados = alergenosDisponibles.where((a) => alergenosIds.contains(a.id)).toList();
 
     return UsuarioSesion(
       id: user.id,
       nombre: nombreLimpio.isEmpty ? emailLimpio.split('@').first : nombreLimpio,
       email: emailLimpio,
-      codigoPostal: codigoPostal,
+      codigoPostal: cpLocal,
       alergenos: seleccionados,
     );
   }
 
-  Future<void> cerrarSesion() async {
-    await _client.auth.signOut();
-  }
-
-  Future<void> recuperarPassword(String email) async {
-    await _client.auth.resetPasswordForEmail(email.trim());
-  }
+  Future<void> cerrarSesion() async => await _client.auth.signOut();
+  Future<void> recuperarPassword(String email) async => await _client.auth.resetPasswordForEmail(email.trim());
 
   Future<void> _guardarPerfilUsuario({
-    required String id,
-    required String nombre,
-    required String email,
-    required String codigoPostal,
+    required String id, required String nombre, required String email, required String codigoPostal,
   }) async {
     try {
-      await _client.from('usuarios').upsert(
-        {
-          'id': id,
-          'nombre': nombre,
-          'apellidos': '', 
-          'correo': email, 
-          'telefono': '',  
-          'codigo_postal': codigoPostal,
-        },
-        onConflict: 'id',
-      );
+      await _client.from('usuarios').upsert({
+        'id': id, 'nombre': nombre, 'apellidos': '', 'correo': email, 'telefono': '', 'codigo_postal': codigoPostal,
+      }, onConflict: 'id');
     } catch (e) {
-      print('🔥🔥🔥 ERROR AL GUARDAR USUARIO EN BD: $e');
       throw AuthException('Error al guardar datos del usuario: $e');
     }
   }
 
   String mensajeErrorAuth(Object error) {
     if (error is AuthException) {
-      final message = error.message.toLowerCase();
-
-      if (message.contains('rate limit') || message.contains('too many requests')) {
-        return 'Demasiados intentos. Por seguridad, espera un rato antes de volver a probar.';
-      }
-
-      if (message.contains('invalid login credentials')) {
-        return 'Correo o contraseña incorrectos.';
-      }
-
-      if (message.contains('email not confirmed')) {
-        return 'Tienes que confirmar tu correo antes de iniciar sesión.';
-      }
-
-      if (message.contains('user already registered') ||
-          message.contains('already registered') ||
-          message.contains('already exists')) {
-        return 'Ya existe una cuenta con ese correo.';
-      }
-
-      if (message.contains('password')) {
-        return 'La contraseña debe tener al menos 6 caracteres.';
-      }
-
-      if (message.contains('invalid email')) {
-        return 'Revisa que el correo esté bien escrito.';
-      }
-
+      final msg = error.message.toLowerCase();
+      if (msg.contains('invalid login credentials')) return 'Correo o contraseña incorrectos.';
+      if (msg.contains('already registered') || msg.contains('already exists')) return 'Ya existe una cuenta con ese correo.';
+      if (msg.contains('password')) return 'La contraseña debe tener al menos 6 caracteres.';
       return error.message;
     }
-
-    final text = error.toString().toLowerCase();
-    if (text.contains('usuarios_alergias')) {
-      return 'No se han podido guardar los alérgenos. Revisa la tabla usuarios_alergias.';
-    }
-
     return 'Ha ocurrido un error. Revisa la conexión e inténtalo de nuevo.';
   }
 
   Future<List<Alergeno>> obtenerAlergenosDisponibles() async {
     try {
-      final response = await _client
-          .from('alergias')
-          // AQUÍ EL CAMBIO 1: Añadido "imagen"
-          .select('id, nombre, imagen')
-          .order('id', ascending: true);
-
-      final lista = (response as List)
-          .map((row) => Alergeno.fromMap(Map<String, dynamic>.from(row as Map)))
-          .where((alergeno) => alergeno.id != 0 && alergeno.nombre.trim().isNotEmpty)
-          .toList();
-
+      final response = await _client.from('alergias').select('id, nombre, imagen').order('id', ascending: true);
+      final lista = (response as List).map((row) => Alergeno.fromMap(Map<String, dynamic>.from(row as Map))).where((a) => a.id != 0).toList();
       if (lista.isNotEmpty) return _sinDuplicados(lista);
     } catch (_) {}
-
     return alergenosComunes;
   }
 
@@ -246,297 +171,115 @@ class SupabaseService {
 
   Future<List<Alergeno>> _obtenerAlergenosUsuarioPorId(String usuarioId) async {
     try {
-      final response = await _client
-          .from('usuarios_alergias')
-          // AQUÍ EL CAMBIO 2: Añadido "imagen" a la relación
-          .select('alergia_id, alergias(id, nombre, imagen)')
-          .eq('usuario_id', usuarioId);
-
+      final response = await _client.from('usuarios_alergias').select('alergia_id, alergias(id, nombre, imagen)').eq('usuario_id', usuarioId);
       final resultado = <Alergeno>[];
       for (final raw in response as List) {
         final row = Map<String, dynamic>.from(raw as Map);
-        final alergiaRelacionada = row['alergias'];
-        if (alergiaRelacionada is Map) {
-          resultado.add(Alergeno.fromMap(Map<String, dynamic>.from(alergiaRelacionada)));
+        if (row['alergias'] is Map) {
+          resultado.add(Alergeno.fromMap(Map<String, dynamic>.from(row['alergias'])));
         } else {
           final id = int.tryParse(row['alergia_id'].toString()) ?? 0;
           if (id != 0) resultado.add(_alergenoPorIdConFallback(id));
         }
       }
       return _sinDuplicados(resultado);
-    } catch (_) {
-      try {
-        final response = await _client
-            .from('usuarios_alergias')
-            .select('alergia_id')
-            .eq('usuario_id', usuarioId);
-
-        return _sinDuplicados(
-          (response as List)
-              .map((raw) {
-                final row = Map<String, dynamic>.from(raw as Map);
-                return _alergenoPorIdConFallback(
-                  int.tryParse(row['alergia_id'].toString()) ?? 0,
-                );
-              })
-              .where((alergeno) => alergeno.id != 0)
-              .toList(),
-        );
-      } catch (_) {
-        return [];
-      }
-    }
+    } catch (_) { return []; }
   }
 
-  Future<void> guardarAlergenosUsuario(
-    List<int> alergenosIds, {
-    String? usuarioIdForzado,
-  }) async {
+  Future<void> guardarAlergenosUsuario(List<int> alergenosIds, {String? usuarioIdForzado}) async {
     final usuarioId = usuarioIdForzado ?? _usuarioActualId;
-    if (usuarioId == null) {
-      throw AuthException('Inicia sesión para guardar tus alérgenos.');
-    }
-
+    if (usuarioId == null) throw AuthException('Inicia sesión.');
     final idsLimpios = alergenosIds.where((id) => id > 0).toSet().toList();
-
     try {
       await _client.from('usuarios_alergias').delete().eq('usuario_id', usuarioId);
-
       if (idsLimpios.isEmpty) return;
-
-      await _client.from('usuarios_alergias').insert(
-            idsLimpios
-                .map(
-                  (id) => {
-                    'usuario_id': usuarioId,
-                    'alergia_id': id,
-                  },
-                )
-                .toList(),
-          );
-    } catch (e) {
-      print('🔥🔥🔥 ERROR AL GUARDAR ALERGIAS EN BD: $e');
-      throw AuthException('Error al guardar alérgenos: $e');
-    }
+      await _client.from('usuarios_alergias').insert(idsLimpios.map((id) => {'usuario_id': usuarioId, 'alergia_id': id}).toList());
+    } catch (e) { throw AuthException('Error al guardar alérgenos.'); }
   }
 
   Future<List<Producto>> obtenerProductos() async {
     final misAlergenos = await obtenerAlergenosUsuario();
-
     try {
-      final response = await _client
-          .from('productos')
-          // AQUÍ EL CAMBIO 3: Añadido "imagen" a la relación
-          .select('*, categorias(nombre), productos_alergias(alergia_id, alergias(id, nombre, imagen))');
-
-      return (response as List).map((raw) {
-        final row = Map<String, dynamic>.from(raw as Map);
-        final alergenosProducto = _extraerAlergenosProducto(row);
-        return Producto.fromMap(
-          row,
-          alergenos: alergenosProducto,
-          alergenosUsuario: misAlergenos,
-        );
-      }).toList();
-    } catch (_) {
-      final response = await _client.from('productos').select('*, categorias(nombre), productos_alergias(alergia_id)');
-
-      return (response as List).map((raw) {
-        final row = Map<String, dynamic>.from(raw as Map);
-        final alergenosProducto = _extraerAlergenosProducto(row);
-        return Producto.fromMap(
-          row,
-          alergenos: alergenosProducto,
-          alergenosUsuario: misAlergenos,
-        );
-      }).toList();
-    }
+      final response = await _client.from('productos').select('*, categorias(nombre), productos_alergias(alergia_id, alergias(id, nombre, imagen))');
+      return (response as List).map((raw) => Producto.fromMap(Map<String, dynamic>.from(raw as Map), alergenos: _extraerAlergenosProducto(Map<String, dynamic>.from(raw as Map)), alergenosUsuario: misAlergenos)).toList();
+    } catch (_) { return []; }
   }
 
   Future<List<Producto>> obtenerProductosProximosACaducar() async {
     final todos = await obtenerProductos();
-    return todos.where((producto) => producto.esFlash).toList();
+    return todos.where((p) => p.esFlash).toList();
   }
 
   Future<List<Receta>> obtenerRecetasSugeridas() async {
     final misAlergenos = await obtenerAlergenosUsuario();
-
     try {
-      final response = await _client
-          .from('recetas')
-          // AQUÍ EL CAMBIO 4: Añadido "imagen" a la relación anidada
-          .select('*, recetas_productos(cantidad, alias, productos(id, nombre, fecha_caducidad, productos_alergias(alergia_id, alergias(id, nombre, imagen))))');
-
+      final response = await _client.from('recetas').select('*, recetas_productos(cantidad, alias, productos(id, nombre, fecha_caducidad, productos_alergias(alergia_id, alergias(id, nombre, imagen))))');
       return _mapearRecetas(response as List, misAlergenos);
-    } catch (_) {
-      final response = await _client
-          .from('recetas')
-          .select('*, recetas_productos(cantidad, alias, productos(id, nombre, fecha_caducidad, productos_alergias(alergia_id)))');
-
-      return _mapearRecetas(response as List, misAlergenos);
-    }
+    } catch (_) { return []; }
   }
 
   Future<List<CategoriaMercadona>> obtenerCategorias() async {
     try {
       final response = await _client.from('categorias').select();
-
-      final categorias = <CategoriaMercadona>[];
-      for (final raw in response as List) {
+      final categorias = (response as List).map((raw) {
         final row = Map<String, dynamic>.from(raw as Map);
-        categorias.add(
-          CategoriaMercadona(
-            id: row['id'].toString(),
-            nombre: row['nombre']?.toString() ?? '',
-            emoji: row['emoji']?.toString() ?? '',
-          ),
-        );
-      }
-
-      categorias.add(
-        const CategoriaMercadona(
-          id: 'flash',
-          nombre: 'Próximos a caducar',
-          emoji: 'https://cdn-icons-png.flaticon.com/512/1164/1164382.png',
-        ),
-      );
-
+        return CategoriaMercadona(id: row['id'].toString(), nombre: row['nombre']?.toString() ?? '', emoji: row['emoji']?.toString() ?? '');
+      }).toList();
+      categorias.add(const CategoriaMercadona(id: 'flash', nombre: 'Próximos a caducar', emoji: '⚡'));
       return categorias;
-    } catch (_) {
-      return const [
-        CategoriaMercadona(id: 'flash', nombre: 'Próximos a caducar', emoji: '⚡'),
-      ];
-    }
+    } catch (_) { return const [CategoriaMercadona(id: 'flash', nombre: 'Próximos a caducar', emoji: '⚡')]; }
   }
 
   List<Receta> _mapearRecetas(List response, List<Alergeno> misAlergenos) {
     final recetas = <Receta>[];
-
     for (final raw in response) {
       final row = Map<String, dynamic>.from(raw as Map);
-      final ingredientesDeEstaReceta = <IngredienteReceta>[];
-      final relacionIngredientes = (row['recetas_productos'] as List?) ?? [];
-
-      for (final rawRel in relacionIngredientes) {
+      final ingredientes = <IngredienteReceta>[];
+      for (final rawRel in (row['recetas_productos'] as List?) ?? []) {
         final rel = Map<String, dynamic>.from(rawRel as Map);
-        final productoObjRaw = rel['productos'];
-        if (productoObjRaw == null || productoObjRaw is! Map) continue;
-
-        final productoObj = Map<String, dynamic>.from(productoObjRaw);
-        
-        final cantidadTexto = rel['cantidad']?.toString() ?? '';
-        final aliasTexto = rel['alias']?.toString().trim(); 
-        
-        final alergenosIngrediente = _extraerAlergenosProducto(productoObj);
-
-        int? diasCaducidad;
-        if (productoObj['fecha_caducidad'] != null) {
-          try {
-            final caducidad = DateTime.parse(productoObj['fecha_caducidad'].toString());
-            diasCaducidad = caducidad.difference(DateTime.now()).inDays;
-          } catch (_) {
-            diasCaducidad = null;
-          }
-        }
-
-        ingredientesDeEstaReceta.add(
-          IngredienteReceta(
-            nombre: (aliasTexto != null && aliasTexto.isNotEmpty) 
-                ? aliasTexto 
-                : productoObj['nombre']?.toString() ?? 'Ingrediente',
-            cantidad: cantidadTexto,
-            productoId: productoObj['id']?.toString() ?? '', 
-            disponible: true,
-            diasCaducidad: diasCaducidad,
-            alergenos: alergenosIngrediente,
-            alergenosCoincidentes: _coincidenciasLocales(alergenosIngrediente, misAlergenos),
-          ),
-        );
+        if (rel['productos'] is! Map) continue;
+        final prodObj = Map<String, dynamic>.from(rel['productos']);
+        final aliasTexto = rel['alias']?.toString().trim();
+        final alergenosIng = _extraerAlergenosProducto(prodObj);
+        ingredientes.add(IngredienteReceta(
+          nombre: (aliasTexto != null && aliasTexto.isNotEmpty) ? aliasTexto : prodObj['nombre']?.toString() ?? 'Ingrediente',
+          cantidad: rel['cantidad']?.toString() ?? '',
+          productoId: prodObj['id']?.toString() ?? '',
+          disponible: true,
+          alergenos: alergenosIng,
+          alergenosCoincidentes: _coincidenciasLocales(alergenosIng, misAlergenos),
+        ));
       }
-
-      recetas.add(
-        Receta.fromMap(
-          row,
-          ingredientesDeEstaReceta,
-          alergenosUsuario: misAlergenos,
-        ),
-      );
+      recetas.add(Receta.fromMap(row, ingredientes, alergenosUsuario: misAlergenos));
     }
-
     return recetas;
   }
 
   List<Alergeno> _extraerAlergenosProducto(Map<String, dynamic> row) {
     final resultado = <Alergeno>[];
-
-    final relaciones = row['productos_alergias'];
-    if (relaciones is List) {
-      for (final rawRelacion in relaciones) {
-        if (rawRelacion is! Map) continue;
-        final relacion = Map<String, dynamic>.from(rawRelacion);
-        final alergiaRelacionada = relacion['alergias'];
-        if (alergiaRelacionada is Map) {
-          resultado.add(Alergeno.fromMap(Map<String, dynamic>.from(alergiaRelacionada)));
-        } else {
-          final id = int.tryParse(relacion['alergia_id'].toString()) ?? 0;
-          if (id != 0) resultado.add(_alergenoPorIdConFallback(id));
-        }
+    if (row['productos_alergias'] is List) {
+      for (final rel in row['productos_alergias']) {
+        if (rel is! Map) continue;
+        final r = Map<String, dynamic>.from(rel);
+        if (r['alergias'] is Map) resultado.add(Alergeno.fromMap(Map<String, dynamic>.from(r['alergias'])));
       }
     }
-
-    final textoAlergenos = row['alergenos'] ?? row['alergias'] ?? row['alergenos_texto'];
-    if (textoAlergenos is String && textoAlergenos.trim().isNotEmpty) {
-      final partes = textoAlergenos
-          .split(RegExp(r'[,;/]'))
-          .map((parte) => parte.trim())
-          .where((parte) => parte.isNotEmpty);
-      for (final parte in partes) {
-        resultado.add(_alergenoPorNombreConFallback(parte));
-      }
-    }
-
     return _sinDuplicados(resultado);
   }
 
-  Alergeno _alergenoPorIdConFallback(int id) {
-    return alergenosComunes.firstWhere(
-      (alergeno) => alergeno.id == id,
-      orElse: () => Alergeno(id: id, nombre: 'Alérgeno $id'),
-    );
-  }
-
-  Alergeno _alergenoPorNombreConFallback(String nombre) {
-    final normalizado = nombre.trim().toLowerCase();
-    return alergenosComunes.firstWhere(
-      (alergeno) => alergeno.nombreNormalizado == normalizado,
-      orElse: () => Alergeno(id: normalizado.hashCode.abs(), nombre: nombre.trim()),
-    );
-  }
-
+  Alergeno _alergenoPorIdConFallback(int id) => alergenosComunes.firstWhere((a) => a.id == id, orElse: () => Alergeno(id: id, nombre: 'Alérgeno $id'));
+  
   List<Alergeno> _coincidenciasLocales(List<Alergeno> producto, List<Alergeno> usuario) {
     final idsUsuario = usuario.map((a) => a.id).toSet();
-    final nombresUsuario = usuario.map((a) => a.nombreNormalizado).toSet();
-    final resultado = <Alergeno>[];
-
-    for (final alergeno in producto) {
-      if ((idsUsuario.contains(alergeno.id) || nombresUsuario.contains(alergeno.nombreNormalizado)) &&
-          !resultado.contains(alergeno)) {
-        resultado.add(alergeno);
-      }
-    }
-
-    return _sinDuplicados(resultado);
+    return _sinDuplicados(producto.where((a) => idsUsuario.contains(a.id)).toList());
   }
 
   List<Alergeno> _sinDuplicados(List<Alergeno> alergenos) {
-    final resultado = <Alergeno>[];
-    for (final alergeno in alergenos) {
-      if (alergeno.nombre.trim().isEmpty) continue;
-      if (!resultado.contains(alergeno)) {
-        resultado.add(alergeno);
-      }
+    final res = <Alergeno>[];
+    for (final a in alergenos) {
+      if (!res.contains(a) && a.nombre.trim().isNotEmpty) res.add(a);
     }
-    resultado.sort((a, b) => a.nombre.compareTo(b.nombre));
-    return resultado;
+    res.sort((a, b) => a.nombre.compareTo(b.nombre));
+    return res;
   }
 }

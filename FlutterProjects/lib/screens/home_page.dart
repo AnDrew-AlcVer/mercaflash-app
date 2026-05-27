@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/producto_model.dart';
 import '../widgets/product_cards.dart';
 import '../widgets/ui_components.dart';
+import '../theme/app_theme.dart';
 
 // ==========================================
 // 1. APP TOP BAR MODIFICADO (SIN MENÚ)
@@ -11,7 +12,6 @@ import '../widgets/ui_components.dart';
 class AppTopBar extends StatelessWidget {
   final int totalUnidades;
   final VoidCallback onOpenCart;
-  // Eliminamos onOpenCategories ya que no hay botón de menú
 
   const AppTopBar({
     super.key,
@@ -28,18 +28,12 @@ class AppTopBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Espacio vacío del mismo tamaño que el botón original 
-            // para que la imagen central NO se mueva de sitio.
             const SizedBox(width: 48),
-            
-            // ---> AQUÍ ESTÁ TU IMAGEN <---
             Image.asset(
               'assets/images/textmercadona.png',
               height: 32,
               fit: BoxFit.contain,
             ),
-            
-            // Botón del carrito con contador
             Stack(
               clipBehavior: Clip.none,
               children: [
@@ -54,7 +48,7 @@ class AppTopBar extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: const BoxDecoration(
-                        color: Colors.green, // Color del circulito del carrito
+                        color: Colors.green, 
                         shape: BoxShape.circle,
                       ),
                       child: Text(
@@ -77,121 +71,88 @@ class AppTopBar extends StatelessWidget {
 }
 
 // ==========================================
-// NUEVA PASTILLA VERDE DE RECETAS (BANNER)
+// NUEVO BANNER DE RECETAS (Estilo Mercadona Moderno)
 // ==========================================
 class RecipePromoBanner extends StatelessWidget {
+  final String? imageUrl;
   final VoidCallback onTap;
 
-  const RecipePromoBanner({super.key, required this.onTap});
+  const RecipePromoBanner({super.key, required this.imageUrl, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 18),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF007A33), Color(0xFF00A045)], // Verdes estilo Mercadona
-            begin: Alignment.bottomLeft,
-            end: Alignment.topRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF007A33).withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Row(
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Pequeña etiqueta semitransparente superior
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.restaurant_menu_rounded, color: Colors.white, size: 14),
-                        SizedBox(width: 4),
-                        Text(
-                          'RECETAS',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  // Título principal
-                  const Text(
-                    'Ofertas que\ninspiran recetas',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      height: 1.2,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Subtítulo
-                  Text(
-                    'Pulsa aquí para cocinar más gastando menos',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.95),
-                      fontSize: 14,
-                      height: 1.4,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+            // 1. Sobre-título pequeño
+            const Text(
+              'NUEVA SECCIÓN',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+                color: Color(0xFF5A5A5A),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(height: 4),
             
-            // Decoración visual a la derecha (Emojis superpuestos y círculo)
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const Text('🥘', style: TextStyle(fontSize: 42)),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Text('⚡', style: TextStyle(fontSize: 14)),
-                  ),
-                )
-              ],
+            // 2. Título principal grande
+            const Text(
+              'Ofertas que inspiran recetas',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: AppTheme.black,
+                height: 1.1,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            
+            // 3. Subtítulo gris
+            const Text(
+              'Pulsa aquí para cocinar más, gastando menos',
+              style: TextStyle(
+                fontSize: 15,
+                color: AppTheme.gray,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // 4. Imagen grande a borde completo
+            Container(
+              height: 200,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F0F0),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: imageUrl != null && imageUrl!.isNotEmpty
+                  ? Image.network(
+                      imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Center(child: Icon(Icons.restaurant_menu_rounded, size: 40, color: Colors.grey)),
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(child: CircularProgressIndicator(color: AppTheme.green));
+                      },
+                    )
+                  : const Center(child: Icon(Icons.restaurant_menu_rounded, size: 40, color: Colors.grey)),
             ),
           ],
         ),
@@ -205,6 +166,7 @@ class RecipePromoBanner extends StatelessWidget {
 // ==========================================
 class HomePage extends StatefulWidget {
   final List<Producto> productos;
+  final List<Receta> recetas; // <-- NUEVO: Recibe la lista de recetas
   final Map<String, int> carrito;
   final int totalUnidades;
   final ValueChanged<Producto> onAdd;
@@ -218,6 +180,7 @@ class HomePage extends StatefulWidget {
   const HomePage({
     super.key,
     required this.productos,
+    required this.recetas, // <-- NUEVO
     required this.carrito,
     required this.totalUnidades,
     required this.onAdd,
@@ -237,32 +200,32 @@ class _HomePageState extends State<HomePage> {
   List<Producto> _flashMostrar = [];
   List<Producto> _recomendados = [];
   String _categoriaAleatoria = '';
+  String? _imagenRecetaRandom; // Guardará la imagen de la receta seleccionada
 
   @override
   void initState() {
     super.initState();
-    _seleccionarProductosAleatorios();
+    _seleccionarDatosAleatorios();
   }
 
   @override
   void didUpdateWidget(HomePage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.productos != oldWidget.productos) {
-      _seleccionarProductosAleatorios();
+    if (widget.productos != oldWidget.productos || widget.recetas != oldWidget.recetas) {
+      _seleccionarDatosAleatorios();
     }
   }
 
-  void _seleccionarProductosAleatorios() {
+  void _seleccionarDatosAleatorios() {
     final random = Random();
 
-    // 1. Ofertas Flash (10 aleatorios con mostrar_oferta == true)
+    // 1. Ofertas Flash
     final flashOfertas = widget.productos.where((p) => p.mostrarOferta).toList();
     flashOfertas.shuffle(random);
     _flashMostrar = flashOfertas.take(10).toList();
 
-    // 2. Recomendados (Categoría aleatoria, excluyendo los que son oferta flash)
+    // 2. Recomendados
     final productosSinOferta = widget.productos.where((p) => !p.mostrarOferta).toList();
-
     final categoriasUnicas = productosSinOferta
         .map((p) => p.categoria)
         .where((c) => c.isNotEmpty)
@@ -271,16 +234,24 @@ class _HomePageState extends State<HomePage> {
 
     if (categoriasUnicas.isNotEmpty) {
       _categoriaAleatoria = categoriasUnicas[random.nextInt(categoriasUnicas.length)];
-      
-      final productosDeCategoria = productosSinOferta
-          .where((p) => p.categoria == _categoriaAleatoria)
-          .toList();
-      
+      final productosDeCategoria = productosSinOferta.where((p) => p.categoria == _categoriaAleatoria).toList();
       productosDeCategoria.shuffle(random);
       _recomendados = productosDeCategoria;
     } else {
       _categoriaAleatoria = '';
       _recomendados = [];
+    }
+
+    // 3. RECETA RANDOM PARA LA IMAGEN DEL BANNER
+    final recetasConImagen = widget.recetas
+        .where((r) => r.imagenUrl != null && r.imagenUrl!.trim().isNotEmpty)
+        .toList();
+
+    if (recetasConImagen.isNotEmpty) {
+      recetasConImagen.shuffle(random);
+      _imagenRecetaRandom = recetasConImagen.first.imagenUrl;
+    } else {
+      _imagenRecetaRandom = null;
     }
   }
 
@@ -293,19 +264,21 @@ class _HomePageState extends State<HomePage> {
         AppTopBar(
           totalUnidades: widget.totalUnidades,
           onOpenCart: widget.onOpenCart,
-          // Ya no pasamos onOpenCategories aquí
         ),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.only(bottom: 28),
             children: [
               const DeliveryBanner(),
-              const SizedBox(height: 8),
+              const SizedBox(height: 24), // Un poco más de aire
               
-              // ---> AQUI COLOCAMOS LA NUEVA PASTILLA VERDE <---
-              RecipePromoBanner(onTap: widget.onOpenFlashRecipes),
+              // ---> AQUI COLOCAMOS EL NUEVO BANNER LIMPIO <---
+              RecipePromoBanner(
+                imageUrl: _imagenRecetaRandom, 
+                onTap: widget.onOpenFlashRecipes,
+              ),
 
-              const SizedBox(height: 18),
+              const SizedBox(height: 32),
               
               // Título clicable para ir a la pestaña de Ofertas Flash
               GestureDetector(
