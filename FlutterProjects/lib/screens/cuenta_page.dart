@@ -233,7 +233,6 @@ class _CuentaPageState extends State<CuentaPage> {
         ),
         const SizedBox(height: 32),
 
-        // Acordeón de Alérgenos (ahora idéntico visualmente a un AccountRow)
         _buildAlergenosExpandible(),
 
         const AccountRow(icon: Icons.receipt_long_outlined, title: 'Mis pedidos'),
@@ -274,7 +273,6 @@ class _CuentaPageState extends State<CuentaPage> {
     );
   }
 
-  // Ahora se ve exactamente como una opción más de la lista
   Widget _buildAlergenosExpandible() {
     return Column(
       children: [
@@ -496,6 +494,93 @@ class _AllergenRegisterBox extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class AllergenSelector extends StatelessWidget {
+  final List<Alergeno> alergenos;
+  final Set<int> selectedIds;
+  final Function(Alergeno, bool) onChanged;
+
+  const AllergenSelector({
+    super.key,
+    required this.alergenos,
+    required this.selectedIds,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8.0,
+      runSpacing: 10.0,
+      children: alergenos.map((alergeno) {
+        final isSelected = selectedIds.contains(alergeno.id);
+
+        // --- LÓGICA A PRUEBA DE BALAS PARA LA IMAGEN ---
+        Widget iconoAlergeno;
+        
+        if (alergeno.imagen == null || alergeno.imagen!.trim().isEmpty) {
+          // 1. Si la base de datos manda NULL, mostramos un aviso naranja para que sepas que falla la BD
+          iconoAlergeno = const Icon(Icons.warning_amber_rounded, size: 18, color: Colors.orange);
+        } else if (alergeno.imagen!.startsWith('http')) {
+          // 2. Si es una URL de internet (http...)
+          iconoAlergeno = Image.network(
+            alergeno.imagen!,
+            width: 20,
+            height: 20,
+            fit: BoxFit.contain,
+            errorBuilder: (c, e, s) => const Icon(Icons.broken_image, size: 18, color: Colors.red),
+          );
+        } else if (alergeno.imagen!.startsWith('assets/')) {
+          // 3. Si es un asset local (ej: assets/icons/leche.png)
+          iconoAlergeno = Image.asset(
+            alergeno.imagen!,
+            width: 20,
+            height: 20,
+            fit: BoxFit.contain,
+            errorBuilder: (c, e, s) => const Icon(Icons.broken_image, size: 18, color: Colors.red),
+          );
+        } else {
+          // 4. Si es un Emoji guardado en tu base de datos (ej: "🐟" o "🥚")
+          iconoAlergeno = Text(
+            alergeno.imagen!, 
+            style: const TextStyle(fontSize: 16)
+          );
+        }
+
+        return InkWell(
+          onTap: () => onChanged(alergeno, !isSelected),
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? AppTheme.red.withOpacity(0.08) : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isSelected ? AppTheme.red.withOpacity(0.6) : Colors.grey.shade300,
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                iconoAlergeno, // <-- Aquí llamamos al widget que hemos decidido arriba
+                const SizedBox(width: 8), 
+                Text(
+                  alergeno.nombre,
+                  style: TextStyle(
+                    color: isSelected ? AppTheme.red : AppTheme.black,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

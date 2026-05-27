@@ -1,16 +1,21 @@
 class Alergeno {
   final int id;
   final String nombre;
+  final String? imagen;
 
   const Alergeno({
     required this.id,
     required this.nombre,
+    this.imagen,
   });
 
   factory Alergeno.fromMap(Map<String, dynamic> data) {
     return Alergeno(
       id: int.tryParse(data['id'].toString()) ?? 0,
       nombre: data['nombre']?.toString() ?? '',
+      // IMPORTANTE: Asegúrate de que en tu Base de Datos la columna se llame "imagen".
+      // Si se llama distinto (ej. "icono" o "url_imagen"), cámbialo aquí abajo:
+      imagen: data['imagen']?.toString(),
     );
   }
 
@@ -39,14 +44,15 @@ class Alergeno {
   int get hashCode => id != 0 ? id.hashCode : nombreNormalizado.hashCode;
 }
 
+// HE AÑADIDO IMÁGENES DE PRUEBA AQUÍ PARA QUE NO LLEGUEN VACÍAS
 const List<Alergeno> alergenosComunes = [
-  Alergeno(id: 1, nombre: 'Gluten'),
-  Alergeno(id: 2, nombre: 'Leche / lactosa'),
-  Alergeno(id: 3, nombre: 'Huevo'),
-  Alergeno(id: 4, nombre: 'Cacahuetes'),
-  Alergeno(id: 5, nombre: 'Frutos secos'),
-  Alergeno(id: 6, nombre: 'Soja'),
-  Alergeno(id: 7, nombre: 'Pescado'),
+  Alergeno(id: 1, nombre: 'Gluten', imagen: 'https://cdn-icons-png.flaticon.com/512/7543/7543117.png'),
+  Alergeno(id: 2, nombre: 'Leche / lactosa', imagen: 'https://cdn-icons-png.flaticon.com/512/375/375278.png'),
+  Alergeno(id: 3, nombre: 'Huevo', imagen: 'https://cdn-icons-png.flaticon.com/512/837/837560.png'),
+  Alergeno(id: 4, nombre: 'Cacahuetes', imagen: 'https://cdn-icons-png.flaticon.com/512/2403/2403163.png'),
+  Alergeno(id: 5, nombre: 'Frutos secos', imagen: 'https://cdn-icons-png.flaticon.com/512/2619/2619522.png'),
+  Alergeno(id: 6, nombre: 'Soja', imagen: 'https://cdn-icons-png.flaticon.com/512/6554/6554477.png'),
+  Alergeno(id: 7, nombre: 'Pescado', imagen: 'https://cdn-icons-png.flaticon.com/512/3132/3132693.png'),
 ];
 
 class Producto {
@@ -67,7 +73,7 @@ class Producto {
   final String descripcion;
   final List<Alergeno> alergenos;
   final List<Alergeno> alergenosCoincidentes;
-  final bool mostrarOferta; // NUEVA COLUMNA
+  final bool mostrarOferta;
 
   const Producto({
     required this.id,
@@ -87,7 +93,7 @@ class Producto {
     this.descripcion = '',
     this.alergenos = const [],
     this.alergenosCoincidentes = const [],
-    this.mostrarOferta = false, // VALOR POR DEFECTO
+    this.mostrarOferta = false,
   });
 
   factory Producto.fromMap(
@@ -140,7 +146,7 @@ class Producto {
       descripcion: data['descripcion']?.toString() ?? '',
       alergenos: _sinDuplicadosAlergenos(alergenos),
       alergenosCoincidentes: coincidencias,
-      mostrarOferta: data['mostrar_oferta'] == true, // SE LEE DESDE SUPABASE
+      mostrarOferta: data['mostrar_oferta'] == true, 
     );
   }
 
@@ -279,6 +285,7 @@ class IngredienteReceta {
   final String cantidad;
   final bool disponible;
   final int? diasCaducidad;
+  final String productoId;
   final List<Alergeno> alergenos;
   final List<Alergeno> alergenosCoincidentes;
 
@@ -286,6 +293,7 @@ class IngredienteReceta {
     required this.nombre,
     required this.cantidad,
     required this.disponible,
+    required this.productoId,
     this.diasCaducidad,
     this.alergenos = const [],
     this.alergenosCoincidentes = const [],

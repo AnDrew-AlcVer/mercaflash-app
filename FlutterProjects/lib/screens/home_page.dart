@@ -153,7 +153,7 @@ class RecipePromoBanner extends StatelessWidget {
                   
                   // Subtítulo
                   Text(
-                    'Cocina más gastando menos con ingredientes rebajados.',
+                    'Pulsa aquí para cocinar más gastando menos',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.95),
                       fontSize: 14,

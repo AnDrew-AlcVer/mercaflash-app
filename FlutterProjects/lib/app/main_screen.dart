@@ -38,7 +38,6 @@ class _MainScreenState extends State<MainScreen> {
 
   int _selectedIndex = 0;
   bool _cargando = true;
-  bool _avisoAlergenosMostrado = false;
   
   int _scrollRecetasTrigger = 0;
 
@@ -108,7 +107,6 @@ class _MainScreenState extends State<MainScreen> {
         _cargando = false;
       });
 
-      _pedirAlergenosSiHaceFalta();
     } catch (e, stacktrace) {
       debugPrint('Error cargando datos: $e');
       debugPrintStack(stackTrace: stacktrace);
@@ -214,7 +212,6 @@ class _MainScreenState extends State<MainScreen> {
 
       await _cargarDatos();
       _mostrarSnack(registrar ? 'Cuenta creada' : 'Sesión iniciada');
-      _pedirAlergenosSiHaceFalta();
       return null;
     } catch (e) {
       return _service.mensajeErrorAuth(e);
@@ -228,7 +225,6 @@ class _MainScreenState extends State<MainScreen> {
       if (!mounted) return null;
       setState(() {
         _alergenosUsuario = usuario?.alergenos ?? const [];
-        _avisoAlergenosMostrado = _alergenosUsuario.isNotEmpty;
       });
       await _cargarDatos();
       _mostrarSnack('Alérgenos guardados');
@@ -246,30 +242,10 @@ class _MainScreenState extends State<MainScreen> {
       _nombreUsuario = 'Invitado';
       _emailUsuario = '';
       _alergenosUsuario = const [];
-      _avisoAlergenosMostrado = false;
       _selectedIndex = 0;
     });
     await _cargarDatos();
     _mostrarSnack('Sesión cerrada');
-  }
-
-  void _pedirAlergenosSiHaceFalta() {
-    if (!_sesionIniciada || _alergenosUsuario.isNotEmpty || _avisoAlergenosMostrado) return;
-    _avisoAlergenosMostrado = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Configura tus alérgenos'),
-          content: const Text('Para avisarte en productos, indica tus alérgenos.'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Ahora no')),
-            ElevatedButton(onPressed: () { Navigator.pop(ctx); _irACuenta(); }, child: const Text('Configurar')),
-          ],
-        ),
-      );
-    });
   }
 
   void _mostrarSnack(String texto, {Color backgroundColor = AppTheme.green}) {

@@ -6,14 +6,14 @@ class UsuarioSesion {
   final String id;
   final String nombre;
   final String email;
-  final String codigoPostal; // NUEVO
+  final String codigoPostal;
   final List<Alergeno> alergenos;
 
   const UsuarioSesion({
     required this.id,
     required this.nombre,
     required this.email,
-    this.codigoPostal = '', // NUEVO
+    this.codigoPostal = '',
     this.alergenos = const [],
   });
 }
@@ -37,19 +37,19 @@ class SupabaseService {
 
     String nombre = '';
     String email = user.email ?? '';
-    String codigoPostal = ''; // Inicializamos vacío
+    String codigoPostal = ''; 
 
     try {
       final perfil = await _client
           .from('usuarios')
-          .select('nombre, correo, codigo_postal') // CAMBIO: Extraemos el CP
+          .select('nombre, correo, codigo_postal')
           .eq('id', user.id)
           .maybeSingle();
 
       if (perfil != null) {
         nombre = perfil['nombre']?.toString().trim() ?? '';
         email = perfil['correo']?.toString().trim() ?? email; 
-        codigoPostal = perfil['codigo_postal']?.toString().trim() ?? ''; // Guardamos el CP extraído
+        codigoPostal = perfil['codigo_postal']?.toString().trim() ?? '';
       }
     } catch (_) {}
 
@@ -72,7 +72,7 @@ class SupabaseService {
       id: user.id,
       nombre: nombre,
       email: email,
-      codigoPostal: codigoPostal, // Se lo asignamos al usuario
+      codigoPostal: codigoPostal,
       alergenos: alergenos,
     );
   }
@@ -103,7 +103,7 @@ class SupabaseService {
     required String nombre,
     required String email,
     required String password,
-    required String codigoPostal, // NUEVO PARÁMETRO
+    required String codigoPostal,
     List<int> alergenosIds = const [],
   }) async {
     final nombreLimpio = nombre.trim();
@@ -124,7 +124,7 @@ class SupabaseService {
       id: user.id,
       nombre: nombreLimpio,
       email: emailLimpio,
-      codigoPostal: codigoPostal, // Se lo pasamos a la DB
+      codigoPostal: codigoPostal,
     );
 
     await guardarAlergenosUsuario(alergenosIds, usuarioIdForzado: user.id);
@@ -158,7 +158,7 @@ class SupabaseService {
     required String id,
     required String nombre,
     required String email,
-    required String codigoPostal, // NUEVO
+    required String codigoPostal,
   }) async {
     try {
       await _client.from('usuarios').upsert(
@@ -168,7 +168,7 @@ class SupabaseService {
           'apellidos': '', 
           'correo': email, 
           'telefono': '',  
-          'codigo_postal': codigoPostal, // CAMBIO: Inserción real en BD
+          'codigo_postal': codigoPostal,
         },
         onConflict: 'id',
       );
@@ -223,7 +223,8 @@ class SupabaseService {
     try {
       final response = await _client
           .from('alergias')
-          .select('id, nombre')
+          // AQUÍ EL CAMBIO 1: Añadido "imagen"
+          .select('id, nombre, imagen')
           .order('id', ascending: true);
 
       final lista = (response as List)
@@ -247,7 +248,8 @@ class SupabaseService {
     try {
       final response = await _client
           .from('usuarios_alergias')
-          .select('alergia_id, alergias(id, nombre)')
+          // AQUÍ EL CAMBIO 2: Añadido "imagen" a la relación
+          .select('alergia_id, alergias(id, nombre, imagen)')
           .eq('usuario_id', usuarioId);
 
       final resultado = <Alergeno>[];
@@ -324,7 +326,8 @@ class SupabaseService {
     try {
       final response = await _client
           .from('productos')
-          .select('*, categorias(nombre), productos_alergias(alergia_id, alergias(id, nombre))');
+          // AQUÍ EL CAMBIO 3: Añadido "imagen" a la relación
+          .select('*, categorias(nombre), productos_alergias(alergia_id, alergias(id, nombre, imagen))');
 
       return (response as List).map((raw) {
         final row = Map<String, dynamic>.from(raw as Map);
@@ -361,13 +364,14 @@ class SupabaseService {
     try {
       final response = await _client
           .from('recetas')
-          .select('*, recetas_productos(cantidad, productos(nombre, fecha_caducidad, productos_alergias(alergia_id, alergias(id, nombre))))');
+          // AQUÍ EL CAMBIO 4: Añadido "imagen" a la relación anidada
+          .select('*, recetas_productos(cantidad, alias, productos(id, nombre, fecha_caducidad, productos_alergias(alergia_id, alergias(id, nombre, imagen))))');
 
       return _mapearRecetas(response as List, misAlergenos);
     } catch (_) {
       final response = await _client
           .from('recetas')
-          .select('*, recetas_productos(cantidad, productos(nombre, fecha_caducidad, productos_alergias(alergia_id)))');
+          .select('*, recetas_productos(cantidad, alias, productos(id, nombre, fecha_caducidad, productos_alergias(alergia_id)))');
 
       return _mapearRecetas(response as List, misAlergenos);
     }
@@ -419,7 +423,10 @@ class SupabaseService {
         if (productoObjRaw == null || productoObjRaw is! Map) continue;
 
         final productoObj = Map<String, dynamic>.from(productoObjRaw);
+        
         final cantidadTexto = rel['cantidad']?.toString() ?? '';
+        final aliasTexto = rel['alias']?.toString().trim(); 
+        
         final alergenosIngrediente = _extraerAlergenosProducto(productoObj);
 
         int? diasCaducidad;
@@ -434,8 +441,11 @@ class SupabaseService {
 
         ingredientesDeEstaReceta.add(
           IngredienteReceta(
-            nombre: productoObj['nombre']?.toString() ?? 'Ingrediente',
+            nombre: (aliasTexto != null && aliasTexto.isNotEmpty) 
+                ? aliasTexto 
+                : productoObj['nombre']?.toString() ?? 'Ingrediente',
             cantidad: cantidadTexto,
+            productoId: productoObj['id']?.toString() ?? '', 
             disponible: true,
             diasCaducidad: diasCaducidad,
             alergenos: alergenosIngrediente,

@@ -125,7 +125,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               
               const Divider(color: AppTheme.border, height: 30),
 
-              // 5. LISTA DE INGREDIENTES DE LA RECETA (Formato tabla limpia)
+              // 5. LISTA DE INGREDIENTES DE LA RECETA
               const Row(
                 children: [
                   Icon(Icons.kitchen_rounded, color: AppTheme.green),
@@ -138,7 +138,6 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               ),
               const SizedBox(height: 16),
               
-              // Encabezados de la tabla
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                 child: Row(
@@ -159,8 +158,11 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               const Divider(color: AppTheme.border, height: 1),
               const SizedBox(height: 8),
               
-              // Filas de ingredientes
-              ...widget.receta.ingredientes.map(
+              // FILAS DE INGREDIENTES (Con filtro anti-duplicados por alias)
+              ...widget.receta.ingredientes.fold<List<IngredienteReceta>>([], (lista, ing) {
+                if (!lista.any((e) => e.nombre == ing.nombre)) lista.add(ing);
+                return lista;
+              }).map(
                 (ingrediente) => Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
                   child: Row(
@@ -228,7 +230,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     final resultado = <_IngredienteComprable>[];
 
     for (final ingrediente in widget.receta.ingredientes) {
-      final producto = _buscarProductoParaIngrediente(ingrediente.nombre);
+      final producto = _buscarProductoParaIngrediente(ingrediente.productoId);
       if (producto != null) {
         resultado.add(_IngredienteComprable(ingrediente: ingrediente, producto: producto));
       }
@@ -243,23 +245,12 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     return resultado;
   }
 
-  // AQUÍ ESTÁ LA NUEVA LÓGICA DE BÚSQUEDA CORREGIDA
-  Producto? _buscarProductoParaIngrediente(String nombreIngrediente) {
-    final nombreBuscado = nombreIngrediente.toLowerCase().trim();
-    if (nombreBuscado.isEmpty) return null;
+  // BUSCADOR CORREGIDO: Ahora busca el ID exacto del producto
+  Producto? _buscarProductoParaIngrediente(String idBuscado) {
+    if (idBuscado.isEmpty) return null;
 
-    // 1. Búsqueda EXACTA: Como vienen de la base de datos cruzada, lo normal es que coincidan 100%
     for (final producto in widget.productos) {
-      if (producto.nombre.toLowerCase().trim() == nombreBuscado) {
-        return producto;
-      }
-    }
-
-    // 2. Búsqueda SEGURA: Si falla la exacta, buscamos usando límites de palabra (RegExp)
-    // Esto evita que "sal" encuentre "salmón". Solo encontrará "sal" si es una palabra aislada.
-    final regex = RegExp(r'\b' + RegExp.escape(nombreBuscado) + r'\b');
-    for (final producto in widget.productos) {
-      if (regex.hasMatch(producto.nombre.toLowerCase())) {
+      if (producto.id.toString() == idBuscado) {
         return producto;
       }
     }
@@ -361,7 +352,6 @@ class _MissingIngredientsBox extends StatelessWidget {
       );
     }
 
-    // CALCULAMOS EL AHORRO TOTAL
     double ahorroTotal = 0;
     for (final item in ingredientes) {
       if (item.producto.mostrarOferta && item.producto.precioAnterior != null) {
@@ -408,7 +398,7 @@ class _MissingIngredientsBox extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
               title: Text(
-                item.ingrediente.nombre,
+                item.producto.nombre, // CAMBIO: Usamos el nombre real del producto (ej: Plátano)
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   color: yaEnCarrito ? AppTheme.green : AppTheme.black,
@@ -419,7 +409,6 @@ class _MissingIngredientsBox extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // Cantidad
                     Expanded(
                       child: Text(
                         item.ingrediente.cantidad.isEmpty 
@@ -428,8 +417,6 @@ class _MissingIngredientsBox extends StatelessWidget {
                         style: const TextStyle(color: AppTheme.gray, fontSize: 13),
                       ),
                     ),
-                    
-                    // Lógica de Precios
                     if (esOferta && item.producto.precioAnterior != null) ...[
                       Text(
                         item.producto.precioAnteriorTexto,
@@ -471,7 +458,6 @@ class _MissingIngredientsBox extends StatelessWidget {
             );
           }),
           
-          // CARTEL DE AHORRO LLAMATIVO
           if (ahorroTotal > 0) ...[
             const SizedBox(height: 16),
             Container(
