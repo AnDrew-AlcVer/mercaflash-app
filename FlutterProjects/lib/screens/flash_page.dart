@@ -13,7 +13,7 @@ class FlashPage extends StatefulWidget {
   final ValueChanged<Producto> onRemove;
   final VoidCallback? onBack;
   final ValueChanged<Receta> onOpenRecipe;
-  final int scrollTrigger; 
+  final int scrollTrigger; // <-- Volvemos a pedir el trigger
 
   const FlashPage({
     super.key,
@@ -33,7 +33,7 @@ class FlashPage extends StatefulWidget {
 
 class _FlashPageState extends State<FlashPage> {
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey _recetasKey = GlobalKey();
+  final GlobalKey _recetasKey = GlobalKey(); // <-- Clave para saber dónde están las recetas
 
   @override
   void initState() {
@@ -46,24 +46,37 @@ class _FlashPageState extends State<FlashPage> {
   @override
   void didUpdateWidget(FlashPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.scrollTrigger != oldWidget.scrollTrigger) {
+    if (widget.scrollTrigger != oldWidget.scrollTrigger && widget.scrollTrigger > 0) {
       _triggerScroll();
     }
   }
 
   void _triggerScroll() {
-    // Al usar SingleChildScrollView la pantalla ya está construida,
-    // un pequeño delay hace que el usuario "vea" cómo baja.
     Future.delayed(const Duration(milliseconds: 150), () {
       if (!mounted) return;
       
-      final context = _recetasKey.currentContext;
-      if (context != null) {
+      // 1. Accedemos al almacenamiento interno de la página
+      final bucket = PageStorage.of(context);
+      
+      // 2. Creamos un ID único para este clic del banner en concreto
+      final String triggerId = 'animacion_hecha_${widget.scrollTrigger}';
+      
+      // 3. Comprobamos si ya hemos ejecutado la animación para este trigger
+      final bool animacionCompletada = bucket.readState(context, identifier: triggerId) as bool? ?? false;
+      
+      // 4. Si ya se hizo (porque el usuario viene de darle a "atrás" en una receta), cancelamos
+      if (animacionCompletada) return;
+      
+      // 5. Si es la primera vez, guardamos en memoria que ya hemos ejecutado el salto
+      bucket.writeState(context, true, identifier: triggerId);
+      
+      final contextTarget = _recetasKey.currentContext;
+      if (contextTarget != null) {
         Scrollable.ensureVisible(
-          context,
+          contextTarget,
           duration: const Duration(milliseconds: 600),
           curve: Curves.easeInOutCubic,
-          alignment: 0.02, // Deja un margen bonito por encima del título
+          alignment: 0.02, 
         );
       }
     });
@@ -89,9 +102,9 @@ class _FlashPageState extends State<FlashPage> {
       children: [
         SimpleHeader(title: 'Ofertas Flash', onBack: widget.onBack),
         Expanded(
-          // SOLUCIÓN: Cambiamos ListView por SingleChildScrollView + Column
-          // para que siempre encuentre el título "Recetas" sin importar si está fuera de pantalla.
           child: SingleChildScrollView(
+            // IMPRESCINDIBLE: Guarda el pixel exacto del scroll al cambiar de pantalla
+            key: const PageStorageKey<String>('flash_page_scroll_key'), 
             controller: _scrollController, 
             padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
             child: Column(
@@ -124,7 +137,7 @@ class _FlashPageState extends State<FlashPage> {
                 const SizedBox(height: 12),
                 
                 SectionTitle(
-                  key: _recetasKey, 
+                  key: _recetasKey, // <-- Asignamos la clave aquí para que el scroll sepa dónde ir
                   title: 'Recetas',
                   subtitle: 'Utiliza los productos rebajados en estas nuevas recetas recomendadas.',
                 ),
