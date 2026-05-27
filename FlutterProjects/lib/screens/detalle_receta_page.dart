@@ -158,7 +158,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               const Divider(color: AppTheme.border, height: 1),
               const SizedBox(height: 8),
               
-              // FILAS DE INGREDIENTES (Con filtro anti-duplicados por alias)
+              // FILAS DE INGREDIENTES
               ...widget.receta.ingredientes.fold<List<IngredienteReceta>>([], (lista, ing) {
                 if (!lista.any((e) => e.nombre == ing.nombre)) lista.add(ing);
                 return lista;
@@ -245,7 +245,6 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     return resultado;
   }
 
-  // BUSCADOR CORREGIDO: Ahora busca el ID exacto del producto
   Producto? _buscarProductoParaIngrediente(String idBuscado) {
     if (idBuscado.isEmpty) return null;
 
@@ -352,13 +351,30 @@ class _MissingIngredientsBox extends StatelessWidget {
       );
     }
 
-    double ahorroTotal = 0;
+    // Cálculos de ahorro global de la receta
+    double ahorroGlobal = 0;
     for (final item in ingredientes) {
       if (item.producto.mostrarOferta && item.producto.precioAnterior != null) {
-        ahorroTotal += (item.producto.precioAnterior! - item.producto.precio);
+        ahorroGlobal += (item.producto.precioAnterior! - item.producto.precio);
       }
     }
-    final String ahorroTexto = ahorroTotal.toStringAsFixed(2).replaceAll('.', ',');
+    final String ahorroGlobalTexto = ahorroGlobal.toStringAsFixed(2).replaceAll('.', ',');
+
+    // Cálculos de la selección dinámica actual
+    double totalOriginalSeleccionado = 0;
+    double totalFinalSeleccionado = 0;
+
+    for (final item in ingredientes) {
+      if (seleccionados.contains(item.producto.id)) {
+        totalFinalSeleccionado += item.producto.precio;
+        if (item.producto.mostrarOferta && item.producto.precioAnterior != null) {
+          totalOriginalSeleccionado += item.producto.precioAnterior!;
+        } else {
+          totalOriginalSeleccionado += item.producto.precio;
+        }
+      }
+    }
+    double ahorroSeleccionado = totalOriginalSeleccionado - totalFinalSeleccionado;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -373,6 +389,57 @@ class _MissingIngredientsBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // BANNER BONITO DE AHORRO GLOBAL (Solo si hay ofertas en la receta)
+          if (ahorroGlobal > 0) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8E1), // Un amarillo/naranja muy suave y elegante
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFFD54F), width: 1.5), // Borde dorado
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFE082),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.savings_rounded, color: Color(0xFFFF8F00), size: 26),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '¡Receta con ahorro!',
+                          style: TextStyle(
+                            color: Color(0xFFFF8F00),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Llevando todos los productos en oferta te ahorras $ahorroGlobalTexto € en el ticket final.',
+                          style: TextStyle(
+                            color: Colors.orange.shade900,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           const Text(
             'Comprar ingredientes',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppTheme.green),
@@ -398,7 +465,7 @@ class _MissingIngredientsBox extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
               title: Text(
-                item.producto.nombre, // CAMBIO: Usamos el nombre real del producto (ej: Plátano)
+                item.producto.nombre,
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   color: yaEnCarrito ? AppTheme.green : AppTheme.black,
@@ -458,46 +525,79 @@ class _MissingIngredientsBox extends StatelessWidget {
             );
           }),
           
-          if (ahorroTotal > 0) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+          // ZONA DINÁMICA DE TOTALES (Aparece cuando seleccionas 1 o más productos)
+          if (seleccionados.isNotEmpty) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+              child: Divider(color: AppTheme.border, height: 1),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${seleccionados.length} artículos:',
+                      style: const TextStyle(color: AppTheme.gray, fontSize: 14, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 4),
+                    if (ahorroSeleccionado > 0)
+                      Text(
+                        'Sin oferta: ${totalOriginalSeleccionado.toStringAsFixed(2).replaceAll('.', ',')} €',
+                        style: const TextStyle(
+                          color: AppTheme.gray,
+                          decoration: TextDecoration.lineThrough,
+                          fontSize: 13,
+                        ),
+                      ),
+                  ],
                 ),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.shade300),
-              ),
-              child: Row(
-                children: [
-                  const Text('🔥', style: TextStyle(fontSize: 24)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      '¡Aprovecha! Te ahorras $ahorroTexto € llevando los productos en oferta.',
-                      style: TextStyle(
-                        color: Colors.orange.shade900,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (ahorroSeleccionado > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        margin: const EdgeInsets.only(bottom: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'Te ahorras ${ahorroSeleccionado.toStringAsFixed(2).replaceAll('.', ',')} €',
+                          style: TextStyle(
+                            color: Colors.red.shade700, 
+                            fontWeight: FontWeight.w900, 
+                            fontSize: 12
+                          ),
+                        ),
+                      ),
+                    Text(
+                      '${totalFinalSeleccionado.toStringAsFixed(2).replaceAll('.', ',')} €',
+                      style: const TextStyle(
+                        color: AppTheme.black,
                         fontWeight: FontWeight.w900,
-                        fontSize: 14,
-                        height: 1.25,
+                        fontSize: 26,
+                        height: 1.0,
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ),
+            const SizedBox(height: 16),
           ],
           
-          const SizedBox(height: 16),
+          // BOTÓN AÑADIR
+          if (seleccionados.isEmpty) const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: seleccionados.isEmpty ? null : onAddSelected,
               icon: const Icon(Icons.add_shopping_cart_rounded),
-              label: const Text('Añadir al carrito'),
+              label: Text(seleccionados.isEmpty ? 'Selecciona productos' : 'Añadir al carrito'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

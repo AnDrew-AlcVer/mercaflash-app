@@ -19,17 +19,21 @@ class CartItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool esOferta = producto.mostrarOferta;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppTheme.white,
         borderRadius: BorderRadius.circular(14),
+        // Si está en oferta, le ponemos un borde rojizo sutil para destacarlo en el carrito
+        border: Border.all(color: esOferta ? AppTheme.red.withOpacity(0.3) : Colors.transparent, width: esOferta ? 1.5 : 0),
         boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 8, offset: Offset(0, 4))],
       ),
       child: Row(
         children: [
-          // Aplicando tu lógica para renderizar imagenUrl o fallback a emoji
+          // Imagen del producto
           Container(
             height: 50,
             width: 50,
@@ -51,13 +55,65 @@ class CartItemTile extends StatelessWidget {
               : Text(producto.emoji, style: const TextStyle(fontSize: 34)),
           ),
           const SizedBox(width: 12),
+          
+          // Detalles del producto
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(producto.nombre, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        producto.nombre, 
+                        maxLines: 1, 
+                        overflow: TextOverflow.ellipsis, 
+                        style: const TextStyle(fontWeight: FontWeight.w900)
+                      )
+                    ),
+                    if (esOferta)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        margin: const EdgeInsets.only(left: 6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'OFERTA',
+                          style: TextStyle(color: AppTheme.red, fontWeight: FontWeight.w900, fontSize: 9),
+                        ),
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 3),
-                Text('${producto.precioTexto} / ud.', style: const TextStyle(color: AppTheme.gray, fontSize: 12)),
+                
+                // Zona de precios (Original vs Oferta)
+                Row(
+                  children: [
+                    if (esOferta && producto.precioAnterior != null) ...[
+                      Text(
+                        '${producto.precioAnterior!.toStringAsFixed(2).replaceAll('.', ',')} €',
+                        style: const TextStyle(
+                          color: AppTheme.gray,
+                          decoration: TextDecoration.lineThrough,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(
+                      '${producto.precioTexto} / ud.', 
+                      style: TextStyle(
+                        color: esOferta ? AppTheme.red : AppTheme.gray, 
+                        fontWeight: esOferta ? FontWeight.w800 : FontWeight.normal,
+                        fontSize: 12
+                      )
+                    ),
+                  ],
+                ),
+                
+                // Alertas de alérgenos
                 if (producto.tieneAlertaAlergenos) ...[
                   const SizedBox(height: 5),
                   AllergenWarningBanner(
@@ -79,20 +135,23 @@ class CartItemTile extends StatelessWidget {
   }
 }
 
+// BARRA DE CHECKOUT CON DOBLE PRECIO
 class CheckoutBar extends StatelessWidget {
-  final double total;
+  final double totalSinDescuentos;
+  final double ahorroTotal;
+  final double totalNeto;
   final VoidCallback onCheckout;
 
   const CheckoutBar({
     super.key,
-    required this.total,
+    required this.totalSinDescuentos,
+    required this.ahorroTotal,
+    required this.totalNeto,
     required this.onCheckout,
   });
 
   @override
   Widget build(BuildContext context) {
-    final totalTexto = '${total.toStringAsFixed(2).replaceAll('.', ',')} €';
-
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
       decoration: const BoxDecoration(
@@ -109,19 +168,55 @@ class CheckoutBar extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const Text(
-                'Total',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Total estimado:',
+                    style: TextStyle(color: AppTheme.gray, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  if (ahorroTotal > 0) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'Sin oferta: ${totalSinDescuentos.toStringAsFixed(2).replaceAll('.', ',')} €',
+                      style: const TextStyle(
+                        color: AppTheme.gray,
+                        decoration: TextDecoration.lineThrough,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              const Spacer(),
-              Text(
-                totalTexto,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (ahorroTotal > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      margin: const EdgeInsets.only(bottom: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.greenLight,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'Ahorras ${ahorroTotal.toStringAsFixed(2).replaceAll('.', ',')} €',
+                        style: const TextStyle(color: AppTheme.green, fontWeight: FontWeight.w900, fontSize: 12),
+                      ),
+                    ),
+                  Text(
+                    '${totalNeto.toStringAsFixed(2).replaceAll('.', ',')} €',
+                    style: const TextStyle(color: AppTheme.black, fontWeight: FontWeight.w900, fontSize: 24, height: 1.1),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           AnimatedTap(
             onTap: onCheckout,
             child: Container(
@@ -131,13 +226,20 @@ class CheckoutBar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(26),
               ),
               alignment: Alignment.center,
-              child: const Text(
-                'Tramitar pedido',
-                style: TextStyle(
-                  color: AppTheme.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Tramitar pedido',
+                    style: TextStyle(
+                      color: AppTheme.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(Icons.receipt_long_rounded, color: Colors.white, size: 20),
+                ],
               ),
             ),
           ),

@@ -11,7 +11,6 @@ import '../screens/home_page.dart';
 import '../screens/productos_categoria_page.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/cart_widgets.dart';
 
 class MainScreen extends StatefulWidget {
   final bool sesionInicialIniciada;
@@ -52,7 +51,6 @@ class _MainScreenState extends State<MainScreen> {
   Receta? _recetaSeleccionada;
 
   List<Producto> _productos = [];
-  List<Producto> _productosFlash = [];
   List<Receta> _recetas = [];
   List<CategoriaMercadona> _categorias = [];
   List<Alergeno> _alergenosDisponibles = alergenosComunes;
@@ -101,7 +99,6 @@ class _MainScreenState extends State<MainScreen> {
 
         _alergenosDisponibles = alergenosDisponibles;
         _productos = productos;
-        _productosFlash = productosFlash;
         _recetas = recetas;
         _categorias = categorias;
         _cargando = false;
@@ -305,11 +302,21 @@ class _MainScreenState extends State<MainScreen> {
           onAdd: _sumarProducto, onRemove: _restarProducto, onOpenRecipe: _abrirReceta,
           scrollTrigger: _scrollRecetasTrigger, 
         ),
+        
+        // AQUÍ ESTÁ LA SOLUCIÓN (Añadido onGoToProducts)
         CarritoPage(
-          productos: _productos, carrito: _carrito, total: _totalCarrito, sesionIniciada: _sesionIniciada,
-          onAdd: _sumarProducto, onRemove: _restarProducto, onClear: _vaciarCarrito, onContinueShopping: _irAHome,
+          productos: _productos, 
+          carrito: _carrito, 
+          total: _totalCarrito, 
+          sesionIniciada: _sesionIniciada,
+          onAdd: _sumarProducto, 
+          onRemove: _restarProducto, 
+          onClear: _vaciarCarrito, 
+          onContinueShopping: _irAHome,
           onRequireLogin: () { _mostrarSnack('Inicia sesión'); _irACuenta(); },
+          onGoToProducts: _irACategorias, // Te manda directo a "Categorías" para ver los productos
         ),
+        
         CuentaPage(
           sesionIniciada: _sesionIniciada, nombreUsuario: _nombreUsuario, emailUsuario: _emailUsuario,
           alergenosDisponibles: _alergenosDisponibles, alergenosUsuario: _alergenosUsuario,
