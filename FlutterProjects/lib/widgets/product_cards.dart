@@ -384,11 +384,6 @@ class ExpiryProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final badgeColor = producto.caducaHoy
-        ? AppTheme.red
-        : producto.caducaPronto
-            ? AppTheme.orange
-            : AppTheme.green;
 
     return AnimatedTap(
       onTap: onAdd,
@@ -441,9 +436,10 @@ class ExpiryProductCard extends StatelessWidget {
                           style: const TextStyle(color: AppTheme.gray, decoration: TextDecoration.lineThrough, fontSize: 12),
                         ),
                       Text(producto.precioTexto, style: const TextStyle(color: AppTheme.red, fontWeight: FontWeight.w900)),
-                      Text(producto.caducidadTexto, style: TextStyle(color: badgeColor, fontWeight: FontWeight.w900, fontSize: 12)),
                     ],
                   ),
+                  const SizedBox(height: 4),
+                  Text(producto.caducidadTexto, style: const TextStyle(color: AppTheme.green, fontWeight: FontWeight.w600, fontSize: 12)),
                   if (producto.tieneAlertaAlergenos) ...[
                     const SizedBox(height: 6),
                     AllergenWarningBanner(

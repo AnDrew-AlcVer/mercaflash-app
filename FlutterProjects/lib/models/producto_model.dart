@@ -160,9 +160,16 @@ class Producto {
 
   String get caducidadTexto {
     if (diasCaducidad == null) return '';
-    if (diasCaducidad! <= 0) return 'Caduca hoy';
-    if (diasCaducidad == 1) return '1 día';
-    return '$diasCaducidad días';
+    
+    // 1. Calculamos la fecha sumando los días a la fecha actual
+    final fecha = DateTime.now().add(Duration(days: diasCaducidad!));
+    
+    // 2. Extraemos día, mes y año añadiendo un '0' a la izquierda si hace falta (ej: 05 en vez de 5)
+    final dia = fecha.day.toString().padLeft(2, '0');
+    final mes = fecha.month.toString().padLeft(2, '0');
+    final anio = fecha.year.toString();
+    
+    return 'Válido hasta $dia/$mes/$anio';
   }
 
   String get precioTexto => '${precio.toStringAsFixed(2).replaceAll('.', ',')} €';
@@ -308,9 +315,13 @@ class IngredienteReceta {
 
   String? get caducidadTexto {
     if (diasCaducidad == null) return null;
-    if (diasCaducidad! <= 0) return 'Caduca hoy';
-    if (diasCaducidad == 1) return '1 día';
-    return '$diasCaducidad días';
+    
+    final fecha = DateTime.now().add(Duration(days: diasCaducidad!));
+    final dia = fecha.day.toString().padLeft(2, '0');
+    final mes = fecha.month.toString().padLeft(2, '0');
+    final anio = fecha.year.toString();
+    
+    return 'Válido hasta $dia/$mes/$anio';
   }
 }
 

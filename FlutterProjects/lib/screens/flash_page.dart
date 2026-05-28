@@ -111,7 +111,7 @@ class _FlashPageState extends State<FlashPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SectionTitle(
-                  title: 'Productos con descuentos increíbles',
+                  title: 'Productos con descuentos',
                   subtitle: 'Dales una segunda oportunidad y cuida tu bolsillo',
                 ),
                 
