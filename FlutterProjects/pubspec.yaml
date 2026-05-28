@@ -17,6 +17,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
@@ -37,3 +38,9 @@ flutter:
     - family: Rv
       fonts:
         - asset: assets/fonts/RV.ttf
+
+# ESTO VA FUERA DEL BLOQUE "flutter:", PEGADO A LA IZQUIERDA
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/icono.png"
