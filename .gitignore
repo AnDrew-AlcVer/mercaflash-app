@@ -1,0 +1,14 @@
+# --- Flutter / Dart / Android Studio ---
+**/build/
+**/.dart_tool/
+**/.packages
+**/.pub-cache/
+**/.pub/
+**/ local.properties
+**/*.iml
+.idea/
+.vscode/
+
+# --- Sistema Operativo ---
+.DS_Store
+Thumbs.db

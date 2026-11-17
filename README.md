@@ -1,59 +1,35 @@
-# EMG_project
+# 🛒 MercaFlash — App de Reducción del Desperdicio Alimentario
 
-## Add your files
+Aplicación móvil multiplataforma desarrollada en **Flutter** con backend en **Supabase** orientada a combatir el desperdicio de alimentos en supermercados. 
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+**MercaFlash** conecta a los consumidores con productos rebajados próximos a su fecha de caducidad y les sugiere **recetas personalizadas** basadas en esos mismos ingredientes para incentivar su compra y aprovechamiento en casa.
 
-```
-cd existing_repo
-git remote add origin https://gitlab.com/lperjua/emg_project.git
-git branch -M main
-git push -uf origin main
-```
+---
 
-## Integrate with your tools
+## 📱 Funcionalidades Principales
 
-* [Set up project integrations](https://gitlab.com/lperjua/emg_project/-/settings/integrations)
+* **Catálogo de Productos Próximos a Caducar:** Visualización de artículos rebajados organizados por categorías y cercanía a su fecha de vencimiento.
+* **Motor de Recomendación de Recetas:** Sugerencia de platos paso a paso que emplean como base los productos en oferta seleccionados por el usuario.
+* **Diseño Centrado en el Usuario (UX/UI):** Interfaz respaldada por un estudio previo de mercado (encuestas a consumidores) y una guía de estilos propia.
 
-## Collaborate with your team
+---
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+## 🛠️ Stack Tecnológico y Metodología
 
-## Test and Deploy
+* **Frontend Móvil:** Flutter & Dart (`FlutterProjects/`)
+* **Backend & Base de Datos:** Supabase (Autenticación, base de datos relacional y almacenamiento de recursos)
+* **Diseño UX/UI:** Guía de estilos y prototipado visual (`Guía de estilos/`)
+* **Gestión Ágil del Proyecto:** Metodología **Scrum** y seguimiento de *sprints* e historias de usuario mediante **Jira** (`Guía Scrums/`, `Espacio Jira/`)
 
-Use the built-in continuous integration in GitLab.
+---
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+## 📂 Estructura del Repositorio
 
-## Nombre
-MercaFlash.
-
-## Descripción
-La aplicación consiste en mostrar al usuario productos rebajados que estén cerca de caducar y recetas con estos mismos productos, con los que, el consumidor se puede animar a comprarlos y a cocinar con ellos para así reducir el desperdicio de comida.
-
-
-## Roadmap
-Tareas e ideas en el Jira
-
-
-
-## Autores
-Jordi Alfani
-Irene León
-Pau Sempere
-Andrés Alcaraz
-Voro Climent
-Joan Torregrosa
-
-
-## Estado del proyecto
-
+```text
+mercaflash-app/
+├── FlutterProjects/    # Código fuente de la aplicación móvil en Flutter
+├── Recetas/            # Base de datos de recetas, ingredientes y recursos gráficos
+├── Guía de estilos/    # Identidad visual, paleta de colores y componentes UI
+├── Guía Scrums/        # Documentación de Sprints y entregables de la metodología ágil
+├── Encuesta/           # Estudio de mercado y validación con usuarios reales
+└── README.md           # Documentación general del proyecto
