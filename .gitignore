@@ -1,14 +1,19 @@
-# --- Flutter / Dart / Android Studio ---
+# --- Entornos e IDEs ---
+.idea/
+.vscode/
+*.iml
+
+# --- Flutter / Dart compilados y cachés locales ---
 **/build/
 **/.dart_tool/
 **/.packages
 **/.pub-cache/
 **/.pub/
-**/ local.properties
-**/*.iml
-.idea/
-.vscode/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/local.properties
 
-# --- Sistema Operativo ---
+# --- Archivos temporales del sistema ---
 .DS_Store
 Thumbs.db
+~$*.docx
